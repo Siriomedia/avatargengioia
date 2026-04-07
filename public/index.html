@@ -7,28 +7,28 @@
   <style>
     /* ── Variables ───────────────────────────────────────────────────── */
     :root {
-      --bg:           #0d0b09;
-      --surface:      #161210;
-      --surface2:     #1c1814;
-      --border:       rgba(240,160,48,.10);
-      --border-hover: rgba(240,160,48,.22);
-      --accent:       #f0a030;
-      --accent-dim:   #b97818;
-      --accent-glow:  rgba(240,160,48,.25);
-      --green:        #5dba7d;
-      --green-dim:    rgba(93,186,125,.15);
-      --green-border: rgba(93,186,125,.30);
-      --red:          #e05d5d;
-      --red-dim:      rgba(224,93,93,.15);
-      --red-border:   rgba(224,93,93,.30);
-      --blue:         #5ba4e0;
-      --yellow:       #e0b030;
-      --yellow-dim:   rgba(224,176,48,.15);
-      --yellow-border:rgba(224,176,48,.30);
-      --text:         #f2e8d8;
-      --text2:        #8a7860;
-      --text3:        #5a4e40;
-      --log-bg:       #08060400;
+      --bg:           #f0f5fc;
+      --surface:      #ffffff;
+      --surface2:     #e8f0fb;
+      --border:       rgba(30,100,220,.12);
+      --border-hover: rgba(30,100,220,.28);
+      --accent:       #1a6fdf;
+      --accent-dim:   #0e4faa;
+      --accent-glow:  rgba(26,111,223,.22);
+      --green:        #1a9e5c;
+      --green-dim:    rgba(26,158,92,.13);
+      --green-border: rgba(26,158,92,.28);
+      --red:          #d63b3b;
+      --red-dim:      rgba(214,59,59,.13);
+      --red-border:   rgba(214,59,59,.28);
+      --blue:         #38a8f5;
+      --yellow:       #e09820;
+      --yellow-dim:   rgba(224,152,32,.13);
+      --yellow-border:rgba(224,152,32,.28);
+      --text:         #0d1a2e;
+      --text2:        #4a6080;
+      --text3:        #8aa4c0;
+      --log-bg:       rgba(240,245,252,0);
       --radius:       16px;
       --font-mono:    'Cascadia Code','Fira Code','Consolas',monospace;
     }
@@ -49,8 +49,8 @@
       content: '';
       position: fixed; inset: 0;
       background:
-        radial-gradient(ellipse 60% 50% at 20% 10%,  rgba(240,160,48,.05) 0%, transparent 70%),
-        radial-gradient(ellipse 50% 40% at 80% 85%,  rgba(80,140,90,.04)  0%, transparent 70%);
+        radial-gradient(ellipse 60% 50% at 20% 10%,  rgba(26,111,223,.07) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 85%,  rgba(56,168,245,.05)  0%, transparent 70%);
       pointer-events: none;
       z-index: 0;
     }
@@ -242,7 +242,7 @@
     .step-icon.running {
       border-color: var(--accent);
       color: var(--accent);
-      background: rgba(240,160,48,.10);
+      background: rgba(26,111,223,.10);
       animation: pulse 1.2s ease infinite;
     }
     .step-icon.done {
@@ -472,13 +472,13 @@
     .format-note {
       margin-top: 16px; padding: 10px 14px;
       border-radius: 10px; font-size: 11.5px;
-      background: rgba(240,160,48,.06);
-      border: 1px solid rgba(240,160,48,.18);
+      background: rgba(26,111,223,.06);
+      border: 1px solid rgba(26,111,223,.18);
       color: var(--text2); line-height: 1.6;
     }
     .format-note code {
       font-family: var(--font-mono); font-size: 10.5px;
-      color: var(--accent); background: rgba(240,160,48,.10);
+      color: var(--accent); background: rgba(26,111,223,.10);
       padding: 1px 5px; border-radius: 4px;
     }
 
@@ -495,7 +495,7 @@
     }
     .drop-zone:hover, .drop-zone.dragging {
       border-color: var(--accent);
-      background: rgba(240,160,48,.05);
+      background: rgba(26,111,223,.05);
     }
     .drop-icon  { font-size: 30px; margin-bottom: 8px; }
     .drop-title { font-size: 13.5px; font-weight: 600; margin-bottom: 5px; }
@@ -666,8 +666,8 @@
 
     .cfg-browse-btn {
       padding: 8px 12px;
-      background: rgba(240,160,48,.10);
-      border: 1px solid rgba(240,160,48,.3);
+      background: rgba(26,111,223,.10);
+      border: 1px solid rgba(26,111,223,.3);
       border-radius: 9px;
       color: var(--accent);
       cursor: pointer;
@@ -675,7 +675,7 @@
       transition: all .15s; flex-shrink: 0;
       white-space: nowrap;
     }
-    .cfg-browse-btn:hover { background: rgba(240,160,48,.18); }
+    .cfg-browse-btn:hover { background: rgba(26,111,223,.18); }
     .cfg-browse-btn:disabled { opacity: .4; cursor: not-allowed; }
 
     .cfg-save-row {
@@ -758,8 +758,8 @@
       display: flex; flex-direction: column; align-items: center; gap: 6px;
       text-align: center; background: var(--surface2);
     }
-    .hbr-card:hover { border-color: var(--accent); background: rgba(240,160,48,.06); }
-    .hbr-card.selected { border-color: var(--accent); background: rgba(240,160,48,.12); }
+    .hbr-card:hover { border-color: var(--accent); background: rgba(26,111,223,.06); }
+    .hbr-card.selected { border-color: var(--accent); background: rgba(26,111,223,.12); }
 
     .hbr-thumb {
       width: 56px; height: 56px; border-radius: 8px;
@@ -779,8 +779,8 @@
       cursor: pointer; transition: all .15s;
       background: var(--surface2);
     }
-    .hbr-voice-row:hover { border-color: var(--accent); background: rgba(240,160,48,.06); }
-    .hbr-voice-row.selected { border-color: var(--accent); background: rgba(240,160,48,.12); }
+    .hbr-voice-row:hover { border-color: var(--accent); background: rgba(26,111,223,.06); }
+    .hbr-voice-row.selected { border-color: var(--accent); background: rgba(26,111,223,.12); }
     .hbr-voice-list { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; max-height: 280px; overflow-y: auto; }
     .hbr-voice-list::-webkit-scrollbar { width: 4px; }
     .hbr-voice-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
@@ -810,7 +810,7 @@
     .me-pill:hover { border-color: var(--border-hover); background: var(--surface); }
     .me-pill.selected {
       border-color: var(--accent);
-      background: rgba(240,160,48,.08);
+      background: rgba(26,111,223,.08);
       box-shadow: 0 0 0 3px var(--accent-glow);
     }
     .me-pill-icon {
@@ -1069,7 +1069,7 @@
               <div class="format-col-example">es. &ldquo;Da pubblicare in alta stagione&rdquo;</div>
             </div>
 
-            <div class="format-col" style="border-color:rgba(240,160,48,.35);background:rgba(240,160,48,.04)">
+            <div class="format-col" style="border-color:rgba(26,111,223,.35);background:rgba(26,111,223,.04)">
               <div class="format-col-name">parlato &nbsp;<span style="font-size:10px;font-weight:400;color:var(--text2);font-family:sans-serif">— opzionale, bypassa Claude</span></div>
               <div class="format-col-desc">Testo parlato completo già scritto da te. Se compilato, <strong style="color:var(--accent)">Claude non viene chiamato</strong> e questo testo viene passato direttamente a HeyGen. Se vuoto, Claude genera il testo automaticamente.</div>
               <div class="format-col-example">es. &ldquo;La legna umida crea variazioni di temperatura nel forno. Ogni nostro lotto viene testato con igrometro&hellip; Se vuoi provare la nostra legna, contattaci.&rdquo;</div>
@@ -1988,7 +1988,7 @@
           ${v.language ? `<div class="hbr-voice-lang">${escHtml(v.language)}</div>` : ''}
           ${v.gender   ? `<div class="hbr-voice-lang">${escHtml(v.gender)}</div>` : ''}
         </div>
-        ${v.preview_audio ? `<button onclick="event.stopPropagation();playVoicePreview('${escHtml(v.preview_audio)}')" style="background:rgba(240,160,48,.15);border:1px solid rgba(240,160,48,.3);border-radius:6px;color:var(--accent);padding:4px 8px;cursor:pointer;font-size:11px;flex-shrink:0">▶</button>` : ''}
+        ${v.preview_audio ? `<button onclick="event.stopPropagation();playVoicePreview('${escHtml(v.preview_audio)}')" style="background:rgba(26,111,223,.15);border:1px solid rgba(26,111,223,.3);border-radius:6px;color:var(--accent);padding:4px 8px;cursor:pointer;font-size:11px;flex-shrink:0">▶</button>` : ''}
       </div>
     `).join('');
   }
