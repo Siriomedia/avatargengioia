@@ -54,7 +54,13 @@ export async function createHeygenVideo(scriptText) {
 
   logger.info(`HeyGen: avvio generazione video (test=${config.isDev}, motionEngine=Avatar ${config.heygen.motionEngine})`);
 
-  const genRes = await axios.post(`${BASE}/v2/video/generate`, payload, { headers });
+  let genRes;
+  try {
+    genRes = await axios.post(`${BASE}/v2/video/generate`, payload, { headers });
+  } catch (err) {
+    const detail = err.response?.data ? JSON.stringify(err.response.data) : err.message;
+    throw new Error(`HeyGen /v2/video/generate → ${err.response?.status ?? '?'}: ${detail}`);
+  }
   const videoId = genRes.data?.data?.video_id;
   if (!videoId) throw new Error(`HeyGen non ha restituito video_id: ${JSON.stringify(genRes.data)}`);
 

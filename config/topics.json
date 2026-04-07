@@ -5,8 +5,7 @@
     "pilastro": "categoria del contenuto. valori accettati:\ntecnico  prodotto  servizio  brand",
     "photoId": "Nome del file foto nella cartella assets/photos/. Opzionale.\nes. \"ai_intro_01.jpg\"",
     "parlato": "Testo parlato completo. Se compilato, bypassa Claude e passa direttamente a HeyGen.\n80–120 parole · 30–45 sec · termina con CTA fissa",
-    "note": "Note libere per uso interno. Non vengono usate dalla pipeline.\nes. \"Da pubblicare in alta stagione\"",
-    "status": "done"
+    "status": "skip"
   },
   {
     "id": 2,
@@ -15,7 +14,7 @@
     "photoId": "ai_lavoro_01.jpg",
     "parlato": "Nel 2025 quasi la metà dei compiti amministrativi può essere automatizzata. Non significa perdere il lavoro — significa liberare tempo per ciò che conta davvero: creatività, relazioni, decisioni strategiche. Chi ha già integrato l'AI nella propria routine risparmia in media due ore al giorno. Due ore che puoi dedicare a quello che ti appassiona davvero. Inizia con un tool, un task, dieci minuti. Il futuro non aspetta.",
     "note": "Tono ottimista, dati concreti",
-    "status": "done"
+    "status": "pending"
   },
   {
     "id": 3,
@@ -24,7 +23,7 @@
     "photoId": "sostenibilita_03.jpg",
     "parlato": "",
     "note": "Angolazione critica e costruttiva",
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": 4,
@@ -33,7 +32,7 @@
     "photoId": "chatgpt_04.jpg",
     "parlato": "",
     "note": "Step by step pratico",
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": 5,
@@ -42,6 +41,24 @@
     "photoId": "",
     "parlato": "",
     "note": "Trend education tech 2025",
-    "status": "pending"
+    "status": "done"
+  },
+  {
+    "id": 6,
+    "topic": "L'AI non ti ruberà il lavoro: ecco perché sei insostituibile",
+    "pilastro": "educativo",
+    "photoId": "professionista_ai.jpg",
+    "parlato": "",
+    "note": "Focus su competenze umane uniche che l'AI non può replicare come creatività, empatia e problem solving complesso",
+    "status": "done"
+  },
+  {
+    "id": 7,
+    "topic": "Come l'AI può diventare il tuo assistente perfetto",
+    "pilastro": "educativo",
+    "photoId": "collaborazione_umano_ai.jpg",
+    "parlato": "",
+    "note": "Esempi pratici di automazione che liberano tempo per attività a valore aggiunto senza sostituire il professionista",
+    "status": "done"
   }
 ]
