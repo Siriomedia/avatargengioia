@@ -33,6 +33,114 @@
       --font-mono:    'Cascadia Code','Fira Code','Consolas',monospace;
     }
 
+    /* ── Login overlay ───────────────────────────────────────────────── */
+    #login-overlay {
+      position: fixed; inset: 0;
+      background: linear-gradient(135deg, #0a1628 0%, #0e2347 50%, #091830 100%);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity .4s ease;
+    }
+    #login-overlay.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    .login-box {
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.12);
+      backdrop-filter: blur(24px);
+      border-radius: 24px;
+      padding: 48px 44px 44px;
+      width: 100%;
+      max-width: 420px;
+      box-shadow: 0 32px 80px rgba(0,0,0,.45), 0 0 0 1px rgba(255,255,255,.04) inset;
+    }
+    .login-logo {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .login-logo .login-icon {
+      font-size: 52px;
+      line-height: 1;
+      margin-bottom: 12px;
+      filter: drop-shadow(0 4px 16px rgba(56,168,245,.4));
+    }
+    .login-logo h2 {
+      font-size: 22px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -.3px;
+    }
+    .login-logo p {
+      font-size: 13px;
+      color: rgba(255,255,255,.45);
+      margin-top: 4px;
+    }
+    .login-field {
+      margin-bottom: 16px;
+    }
+    .login-field label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: .6px;
+      text-transform: uppercase;
+      color: rgba(255,255,255,.5);
+      margin-bottom: 8px;
+    }
+    .login-field input {
+      width: 100%;
+      padding: 13px 16px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.14);
+      border-radius: 12px;
+      font-size: 15px;
+      color: #fff;
+      outline: none;
+      transition: border-color .2s, background .2s;
+    }
+    .login-field input::placeholder { color: rgba(255,255,255,.25); }
+    .login-field input:focus {
+      border-color: rgba(56,168,245,.7);
+      background: rgba(255,255,255,.1);
+    }
+    .login-error {
+      font-size: 13px;
+      color: #ff6b6b;
+      text-align: center;
+      margin-bottom: 14px;
+      min-height: 20px;
+      transition: opacity .2s;
+    }
+    .login-btn {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #1a6fdf, #38a8f5);
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      transition: opacity .2s, transform .1s;
+      letter-spacing: .2px;
+      box-shadow: 0 4px 20px rgba(26,111,223,.45);
+    }
+    .login-btn:hover  { opacity: .9; }
+    .login-btn:active { transform: scale(.98); }
+    .login-shake {
+      animation: shake .35s ease;
+    }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%      { transform: translateX(-8px); }
+      40%      { transform: translateX(8px); }
+      60%      { transform: translateX(-5px); }
+      80%      { transform: translateX(5px); }
+    }
+
     /* ── Reset ───────────────────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -930,6 +1038,28 @@
   </style>
 </head>
 <body>
+
+<!-- ── Login Overlay ────────────────────────────────────────────────── -->
+<div id="login-overlay">
+  <div class="login-box" id="login-box">
+    <div class="login-logo">
+      <div class="login-icon">🤖</div>
+      <h2>AvatarGenGioIA</h2>
+      <p>MCP Pipeline Dashboard</p>
+    </div>
+    <div class="login-field">
+      <label>Email</label>
+      <input id="login-email" type="email" placeholder="nome@esempio.com" autocomplete="username" />
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" />
+    </div>
+    <p class="login-error" id="login-error"></p>
+    <button class="login-btn" onclick="doLogin()">Accedi</button>
+  </div>
+</div>
+
 <div class="wrap">
 
   <!-- ── Header ──────────────────────────────────────────────────────── -->
@@ -1701,6 +1831,38 @@
   loadTopics();
 
   // ── Tab Switching ──────────────────────────────────────────────────────────
+  // ── Login ─────────────────────────────────────────────────────────────
+  const _LC = { u: 'siriomediahouse@gmail.com', p: 'Avatar2026!' };
+  const _SK = 'aggia_auth';
+
+  function doLogin() {
+    const email = document.getElementById('login-email').value.trim();
+    const pass  = document.getElementById('login-pass').value;
+    const errEl = document.getElementById('login-error');
+    const box   = document.getElementById('login-box');
+    if (email === _LC.u && pass === _LC.p) {
+      sessionStorage.setItem(_SK, '1');
+      const overlay = document.getElementById('login-overlay');
+      overlay.classList.add('hidden');
+      setTimeout(() => overlay.remove(), 450);
+    } else {
+      errEl.textContent = 'Email o password non corretti.';
+      box.classList.remove('login-shake');
+      void box.offsetWidth;
+      box.classList.add('login-shake');
+    }
+  }
+
+  // Intercetta Enter nei campi
+  document.getElementById('login-email').addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('login-pass').focus());
+  document.getElementById('login-pass').addEventListener('keydown',  e => e.key === 'Enter' && doLogin());
+
+  // Se già autenticato in questa sessione, rimuove subito l'overlay
+  if (sessionStorage.getItem(_SK) === '1') {
+    document.getElementById('login-overlay').remove();
+  }
+
+  // ── Tabs ──────────────────────────────────────────────────────────────
   function switchTab(name, btn) {
     document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
