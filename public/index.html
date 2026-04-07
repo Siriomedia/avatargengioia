@@ -676,6 +676,89 @@
       white-space: nowrap;
     }
     .cfg-browse-btn:hover { background: rgba(26,111,223,.18); }
+
+    /* ── Wizard ───────────────────────────────────────────────────── */
+    .wiz-wrap { max-width: 720px; margin: 0 auto; padding: 32px 0 64px; }
+    .wiz-progress { display: flex; align-items: center; gap: 0; margin-bottom: 40px; }
+    .wiz-step-dot {
+      width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+      background: var(--surface2); color: var(--text3); border: 2px solid var(--border);
+      transition: all .25s;
+    }
+    .wiz-step-dot.active { background: var(--accent); color: #fff; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-glow); }
+    .wiz-step-dot.done { background: var(--green); color: #fff; border-color: var(--green); }
+    .wiz-step-line { flex: 1; height: 2px; background: var(--border); transition: background .25s; }
+    .wiz-step-line.done { background: var(--green); }
+    .wiz-card {
+      background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 36px 40px; box-shadow: 0 2px 16px rgba(0,0,0,.04);
+    }
+    .wiz-q-num { font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .08em; text-transform: uppercase; margin-bottom: 8px; }
+    .wiz-q-text { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; line-height: 1.3; }
+    .wiz-q-hint { font-size: 13px; color: var(--text2); margin-bottom: 28px; }
+    .wiz-input, .wiz-textarea, .wiz-select {
+      width: 100%; padding: 12px 16px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: var(--surface2);
+      color: var(--text); font-size: 15px; font-family: inherit;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .wiz-input:focus, .wiz-textarea:focus, .wiz-select:focus {
+      outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .wiz-textarea { min-height: 100px; resize: vertical; }
+    .wiz-select option { background: var(--surface); }
+    .wiz-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+    .wiz-chip {
+      padding: 8px 18px; border-radius: 50px; border: 1.5px solid var(--border);
+      background: var(--surface2); color: var(--text2); cursor: pointer;
+      font-size: 14px; font-weight: 500; transition: all .18s; user-select: none;
+    }
+    .wiz-chip:hover { border-color: var(--accent); color: var(--accent); }
+    .wiz-chip.sel { border-color: var(--accent); background: var(--accent); color: #fff; }
+    .wiz-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 32px; }
+    .wiz-btn-back {
+      padding: 11px 28px; border-radius: 10px; border: 1.5px solid var(--border);
+      background: transparent; color: var(--text2); cursor: pointer; font-size: 14px; font-weight: 600;
+      transition: all .18s;
+    }
+    .wiz-btn-back:hover { border-color: var(--accent); color: var(--accent); }
+    .wiz-btn-next {
+      padding: 12px 32px; border-radius: 10px; border: none;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: #fff; cursor: pointer; font-size: 15px; font-weight: 700;
+      box-shadow: 0 4px 16px var(--accent-glow); transition: all .18s;
+    }
+    .wiz-btn-next:hover { transform: translateY(-1px); box-shadow: 0 6px 20px var(--accent-glow); }
+    .wiz-btn-next:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+    .wiz-result {
+      background: var(--surface); border: 1.5px solid var(--green-border); border-radius: var(--radius);
+      padding: 36px 40px; text-align: center;
+    }
+    .wiz-result-icon { font-size: 52px; margin-bottom: 16px; }
+    .wiz-result-title { font-size: 24px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .wiz-result-sub { font-size: 14px; color: var(--text2); margin-bottom: 28px; }
+    .wiz-preview-table { width: 100%; border-collapse: collapse; font-size: 13px; margin: 24px 0; text-align: left; }
+    .wiz-preview-table th { padding: 8px 12px; border-bottom: 2px solid var(--border); color: var(--text2); font-weight: 600; }
+    .wiz-preview-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+    .wiz-preview-table tr:last-child td { border-bottom: none; }
+    .wiz-dl-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 36px; border-radius: 12px; border: none;
+      background: linear-gradient(135deg, #1a9e5c 0%, #0e7040 100%);
+      color: #fff; font-size: 16px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(26,158,92,.3); transition: all .2s;
+    }
+    .wiz-dl-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 28px rgba(26,158,92,.4); }
+    .wiz-import-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 36px; border-radius: 12px; border: 1.5px solid var(--accent);
+      background: transparent; color: var(--accent); font-size: 16px; font-weight: 700; cursor: pointer;
+      transition: all .2s; margin-left: 12px;
+    }
+    .wiz-import-btn:hover { background: var(--accent); color: #fff; }
+    .wiz-spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid rgba(255,255,255,.3); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 8px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
     .cfg-browse-btn:disabled { opacity: .4; cursor: not-allowed; }
 
     .cfg-save-row {
@@ -873,6 +956,7 @@
   <nav class="tabs">
     <button class="tab-btn active" onclick="switchTab('pipeline', this)">🎬 Pipeline</button>
     <button class="tab-btn" onclick="switchTab('topics', this)">📋 Gestione Topic</button>
+    <button class="tab-btn" onclick="switchTab('wizard', this)">🪄 Genera Excel</button>
     <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Configurazioni</button>
   </nav>
 
@@ -1155,6 +1239,22 @@
   </div><!-- /tab-topics -->
 
   <!-- ══ TAB: CONFIGURAZIONI ═════════════════════════════════════════ -->
+  <!-- ══ TAB: WIZARD ═════════════════════════════════════════════════ -->
+  <div id="tab-wizard" class="tab-content">
+    <div class="wiz-wrap">
+      <div style="margin-bottom:32px">
+        <h2 style="font-size:26px;font-weight:800;color:var(--text)">🪄 Genera Excel Topic</h2>
+        <p style="color:var(--text2);margin-top:6px">Rispondi a 10 domande — Claude AI genererà i tuoi topic pronti per l'importazione.</p>
+      </div>
+
+      <!-- Progress dots -->
+      <div class="wiz-progress" id="wiz-progress"></div>
+
+      <!-- Step container -->
+      <div id="wiz-step-container"></div>
+    </div>
+  </div>
+
   <div id="tab-config" class="tab-content">
 
     <div class="cfg-grid">
@@ -1608,6 +1708,316 @@
     btn.classList.add('active');
     if (name === 'topics') loadTopics();
     if (name === 'config') loadConfigTab();
+    if (name === 'wizard') initWizard();
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // WIZARD — Genera Excel
+  // ══════════════════════════════════════════════════════════════════════════
+  const WIZ_QUESTIONS = [
+    {
+      id: 'qty',
+      text: 'Quanti video vuoi creare?',
+      hint: 'Indica il numero di video. Ogni video avrà un topic dedicato.',
+      type: 'number',
+      placeholder: 'Es: 5',
+      min: 1, max: 30,
+    },
+    {
+      id: 'subject',
+      text: 'Qual è l\'argomento principale?',
+      hint: 'Descrivi in modo libero l\'argomento o il tema dei video.',
+      type: 'text',
+      placeholder: 'Es: legna da ardere per pizzerie napoletane',
+    },
+    {
+      id: 'pilastro',
+      text: 'Qual è il pilastro di contenuto?',
+      hint: 'Scegli il tipo di contenuto che vuoi comunicare.',
+      type: 'chips',
+      options: [
+        { value: 'tecnico',  label: '🔧 Tecnico',  hint: 'Informazioni su legna, forni, combustione' },
+        { value: 'prodotto', label: '📦 Prodotto',  hint: 'Presentazione prodotti specifici' },
+        { value: 'servizio', label: '🚚 Servizio',  hint: 'Logistica, consegna, assistenza' },
+        { value: 'brand',    label: '🏛️ Brand',    hint: 'Storia, valori, team' },
+        { value: 'misto',    label: '🎨 Misto',     hint: 'Varia tra i pilastri' },
+      ],
+    },
+    {
+      id: 'target',
+      text: 'Chi è il tuo pubblico target?',
+      hint: 'A chi sono rivolti questi video?',
+      type: 'chips',
+      options: [
+        { value: 'pizzaioli',    label: '🍕 Pizzaioli professionali' },
+        { value: 'ristoratori',  label: '🍽️ Ristoratori' },
+        { value: 'privati',      label: '🏠 Privati / Appassionati' },
+        { value: 'tutti',        label: '👥 Tutti' },
+      ],
+    },
+    {
+      id: 'stile',
+      text: 'Che stile comunicativo vuoi?',
+      hint: 'Il tono della narrazione nel video.',
+      type: 'chips',
+      options: [
+        { value: 'educativo',     label: '📚 Educativo',     hint: 'Insegna qualcosa' },
+        { value: 'promozionale',  label: '📣 Promozionale',  hint: 'Metti in risalto i vantaggi' },
+        { value: 'storytelling',  label: '📖 Storytelling',  hint: 'Racconta una storia' },
+        { value: 'tecnico',       label: '⚙️ Tecnico',       hint: 'Preciso e dettagliato' },
+        { value: 'diretto',       label: '⚡ Diretto',       hint: 'Breve e al punto' },
+      ],
+    },
+    {
+      id: 'prodotto',
+      text: 'C\'è un prodotto specifico da evidenziare?',
+      hint: 'Opzionale. Es: Faggio Premium, Quercia Lenta, Misto Toscano.',
+      type: 'text',
+      placeholder: 'Es: Faggio Premium stagionato 18 mesi (lascia vuoto se non applicabile)',
+      required: false,
+    },
+    {
+      id: 'messaggio',
+      text: 'Qual è il messaggio chiave che vuoi comunicare?',
+      hint: 'La cosa più importante che deve restare in testa a chi guarda.',
+      type: 'textarea',
+      placeholder: 'Es: La nostra legna è certificata, secca e consegnata in 24h. Qualità garantita per pizzerie professionali.',
+    },
+    {
+      id: 'parlato',
+      text: 'Hai già testi o frasi da usare come base?',
+      hint: 'Opzionale. Se hai script già scritti, incollali qui. Claude li userà come punto di partenza.',
+      type: 'textarea',
+      placeholder: 'Es: "La legna umida crea variazioni di temperatura nel forno..." (lascia vuoto per generazione automatica)',
+      required: false,
+    },
+    {
+      id: 'cta',
+      text: 'Che azione vuoi far fare al cliente?',
+      hint: 'La call-to-action di chiusura del video.',
+      type: 'chips',
+      options: [
+        { value: 'contattaci',  label: '📞 Contattaci' },
+        { value: 'ordina',      label: '🛒 Ordina ora' },
+        { value: 'visita',      label: '🌐 Visita il sito' },
+        { value: 'scopri',      label: '🔍 Scopri di più' },
+        { value: 'nessuna',     label: '🚫 Nessuna CTA' },
+      ],
+    },
+    {
+      id: 'note',
+      text: 'Note aggiuntive o istruzioni speciali?',
+      hint: 'Opzionale. Qualsiasi cosa voglia che Claude sappia per personalizzare i contenuti.',
+      type: 'textarea',
+      placeholder: 'Es: Evita termini troppo tecnici. Menziona sempre la consegna puntuale. Stagione: estate 2026.',
+      required: false,
+    },
+  ];
+
+  let wizStep = 0;
+  let wizAnswers = {};
+  let wizGenerated = null;
+  let wizInited = false;
+
+  function initWizard() {
+    if (wizInited) return;
+    wizInited = true;
+    wizStep = 0;
+    wizAnswers = {};
+    wizGenerated = null;
+    renderWizProgress();
+    renderWizStep();
+  }
+
+  function renderWizProgress() {
+    const el = document.getElementById('wiz-progress');
+    const total = WIZ_QUESTIONS.length;
+    let html = '';
+    for (let i = 0; i < total; i++) {
+      const cls = i < wizStep ? 'done' : (i === wizStep ? 'active' : '');
+      html += `<div class="wiz-step-dot ${cls}">${i < wizStep ? '✓' : i + 1}</div>`;
+      if (i < total - 1) html += `<div class="wiz-step-line ${i < wizStep ? 'done' : ''}"></div>`;
+    }
+    el.innerHTML = html;
+  }
+
+  function renderWizStep() {
+    const container = document.getElementById('wiz-step-container');
+    if (wizStep >= WIZ_QUESTIONS.length) {
+      renderWizGenerating(container);
+      return;
+    }
+    const q = WIZ_QUESTIONS[wizStep];
+    const saved = wizAnswers[q.id] || '';
+    const isLast = wizStep === WIZ_QUESTIONS.length - 1;
+
+    let inputHtml = '';
+    if (q.type === 'chips') {
+      inputHtml = `<div class="wiz-chips" id="wiz-chips">`;
+      q.options.forEach(o => {
+        const sel = saved === o.value ? 'sel' : '';
+        inputHtml += `<div class="wiz-chip ${sel}" data-val="${o.value}" onclick="wizSelectChip(this,'${q.id}')">${o.label}</div>`;
+      });
+      inputHtml += `</div>`;
+    } else if (q.type === 'textarea') {
+      inputHtml = `<textarea class="wiz-textarea" id="wiz-input" placeholder="${q.placeholder || ''}" rows="4">${saved}</textarea>`;
+    } else if (q.type === 'number') {
+      inputHtml = `<input class="wiz-input" id="wiz-input" type="number" min="${q.min||1}" max="${q.max||30}" placeholder="${q.placeholder||''}" value="${saved}">`;
+    } else {
+      inputHtml = `<input class="wiz-input" id="wiz-input" type="text" placeholder="${q.placeholder||''}" value="${saved}">`;
+    }
+
+    container.innerHTML = `
+      <div class="wiz-card">
+        <div class="wiz-q-num">Domanda ${wizStep + 1} di ${WIZ_QUESTIONS.length}</div>
+        <div class="wiz-q-text">${q.text}</div>
+        <div class="wiz-q-hint">${q.hint}</div>
+        ${inputHtml}
+        <div class="wiz-nav">
+          <button class="wiz-btn-back" onclick="wizBack()" ${wizStep === 0 ? 'style="visibility:hidden"' : ''}>← Indietro</button>
+          <button class="wiz-btn-next" id="wiz-next-btn" onclick="wizNext('${q.id}','${q.type}',${!!q.required===false && q.required !== undefined ? 'false' : 'true'})">
+            ${isLast ? '✨ Genera Excel' : 'Avanti →'}
+          </button>
+        </div>
+      </div>
+    `;
+
+    // Focus automatico
+    const inp = document.getElementById('wiz-input');
+    if (inp) setTimeout(() => inp.focus(), 50);
+
+    // Enter per avanti
+    if (inp && q.type !== 'textarea') {
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('wiz-next-btn').click(); });
+    }
+  }
+
+  function wizSelectChip(el, qid) {
+    document.querySelectorAll('#wiz-chips .wiz-chip').forEach(c => c.classList.remove('sel'));
+    el.classList.add('sel');
+    wizAnswers[qid] = el.dataset.val;
+  }
+
+  function wizBack() {
+    wizStep = Math.max(0, wizStep - 1);
+    renderWizProgress();
+    renderWizStep();
+  }
+
+  function wizNext(qid, type, required) {
+    let val = '';
+    if (type === 'chips') {
+      val = wizAnswers[qid] || '';
+    } else {
+      const inp = document.getElementById('wiz-input');
+      val = inp ? inp.value.trim() : '';
+      wizAnswers[qid] = val;
+    }
+    if (required !== false && !val) {
+      const inp = document.getElementById('wiz-input') || document.getElementById('wiz-chips');
+      if (inp) { inp.style.outline = '2px solid var(--red)'; setTimeout(() => inp.style.outline = '', 1000); }
+      return;
+    }
+    wizStep++;
+    renderWizProgress();
+    renderWizStep();
+  }
+
+  async function renderWizGenerating(container) {
+    container.innerHTML = `
+      <div class="wiz-card" style="text-align:center;padding:56px 40px">
+        <div style="font-size:48px;margin-bottom:16px">🤖</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px">Claude sta generando i tuoi topic...</div>
+        <div style="color:var(--text2);font-size:14px;margin-bottom:28px">Analisi risposte e creazione contenuti personalizzati</div>
+        <div style="display:flex;justify-content:center">
+          <div class="wiz-spinner" style="border-color:rgba(26,111,223,.2);border-top-color:var(--accent);width:36px;height:36px;border-width:4px"></div>
+        </div>
+      </div>
+    `;
+    try {
+      const res = await fetch('/api/wizard/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(wizAnswers),
+      });
+      if (!res.ok) throw new Error((await res.json()).error || 'Errore server');
+      wizGenerated = await res.json();
+      renderWizResult(container);
+    } catch (err) {
+      container.innerHTML = `
+        <div class="wiz-card" style="text-align:center;padding:48px">
+          <div style="font-size:44px;margin-bottom:12px">❌</div>
+          <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px">Generazione fallita</div>
+          <div style="color:var(--red);font-size:13px;margin-bottom:24px">${err.message}</div>
+          <button class="wiz-btn-next" onclick="wizStep=WIZ_QUESTIONS.length-1;renderWizProgress();renderWizStep()">← Riprova</button>
+        </div>
+      `;
+    }
+  }
+
+  function renderWizResult(container) {
+    const topics = wizGenerated.topics || [];
+    const rows = topics.slice(0, 5).map(t => `
+      <tr>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.topic}</td>
+        <td><span class="tag">${t.pilastro}</span></td>
+        <td style="max-width:180px;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.parlato ? t.parlato.slice(0,60)+'…' : '<em>Claude AI</em>'}</td>
+      </tr>
+    `).join('');
+    const more = topics.length > 5 ? `<tr><td colspan="3" style="text-align:center;color:var(--text3);font-size:12px;padding:8px">+ altri ${topics.length - 5} topic...</td></tr>` : '';
+
+    container.innerHTML = `
+      <div class="wiz-result">
+        <div class="wiz-result-icon">✅</div>
+        <div class="wiz-result-title">${topics.length} topic generati con successo!</div>
+        <div class="wiz-result-sub">Controlla l'anteprima qui sotto, poi scarica l'Excel o importa direttamente.</div>
+        <table class="wiz-preview-table">
+          <thead><tr><th>Topic</th><th>Pilastro</th><th>Testo parlato</th></tr></thead>
+          <tbody>${rows}${more}</tbody>
+        </table>
+        <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:12px;margin-top:8px">
+          <button class="wiz-dl-btn" onclick="wizDownloadExcel()">📥 Scarica Excel</button>
+          <button class="wiz-import-btn" onclick="wizImportDirect()">⚡ Importa ora nella pipeline</button>
+        </div>
+        <div style="margin-top:20px">
+          <button class="wiz-btn-back" onclick="wizReset()" style="margin:0 auto;display:block">🔄 Ricomincia da capo</button>
+        </div>
+      </div>
+    `;
+  }
+
+  async function wizDownloadExcel() {
+    const res = await fetch('/api/wizard/export-xlsx', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topics: wizGenerated.topics }),
+    });
+    if (!res.ok) { alert('Errore download'); return; }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url;
+    a.download = `2c-legnami-topics-${Date.now()}.xlsx`;
+    a.click(); URL.revokeObjectURL(url);
+  }
+
+  async function wizImportDirect() {
+    const res = await fetch('/api/wizard/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topics: wizGenerated.topics }),
+    });
+    if (!res.ok) { alert('Errore importazione'); return; }
+    const data = await res.json();
+    alert(`✅ ${data.count} topic importati con successo nella pipeline!`);
+    switchTab('topics', document.querySelector('.tab-btn:nth-child(2)'));
+  }
+
+  function wizReset() {
+    wizStep = 0;
+    wizAnswers = {};
+    wizGenerated = null;
+    renderWizProgress();
+    renderWizStep();
   }
 
   // ── Drag & Drop ────────────────────────────────────────────────────────────

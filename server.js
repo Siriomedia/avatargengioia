@@ -503,6 +503,125 @@ app.get('/api/heygen/voices', async (_req, res) => {
   }
 });
 
+// ─── Wizard API ─────────────────────────────────────────────────────────────
+
+const WIZARD_SYSTEM_PROMPT = `Sei l'assistente AI di 2C Legnami, fornitore di legna da ardere per pizzerie professionali.
+Il tuo compito è generare una lista di topic per video Instagram Reel, basandoti sulle risposte di un questionario.
+
+Genera ESATTAMENTE il numero di topic richiesto (campo "qty").
+Per ogni topic produci un oggetto JSON con questi campi:
+- "topic": titolo video (max 65 caratteri, incisivo e chiaro)
+- "pilastro": uno tra "tecnico","prodotto","servizio","brand" (se qty è "misto" varia)
+- "photoId": suggerisci un nome file immagine coerente (es. "faggio_01.jpg") o ""
+- "parlato": se nel questionario ci sono testi base, adattali e completali per questo topic (max 300 caratteri). Altrimenti lascia "" (verrà generato da Claude al momento del video)
+- "note": breve nota contestuale sull'argomento
+
+REGOLE:
+- I topic devono essere DIVERSI tra loro e coprire angolazioni diverse dello stesso argomento
+- Rispetta stile, target e CTA indicati nel questionario
+- Se pilastro è "misto", distribuisci equamente tra i 4 pilastri
+- Rispondi SOLO con un array JSON valido, nessun testo aggiuntivo, nessun markdown`;
+
+// POST /api/wizard/generate — Claude genera i topic dal questionario
+app.post('/api/wizard/generate', async (req, res) => {
+  try {
+    const env    = readEnvFile();
+    const apiKey = env.ANTHROPIC_API_KEY;
+    if (!apiKey) return res.status(400).json({ error: 'ANTHROPIC_API_KEY non configurata' });
+
+    const answers = req.body;
+    const qty     = parseInt(answers.qty) || 5;
+
+    const userMessage = `Questionario compilato:
+- Numero di video: ${qty}
+- Argomento principale: ${answers.subject || 'legna da ardere per pizzerie'}
+- Pilastro: ${answers.pilastro || 'misto'}
+- Pubblico target: ${answers.target || 'pizzaioli professionali'}
+- Stile comunicativo: ${answers.stile || 'educativo'}
+- Prodotto specifico: ${answers.prodotto || 'nessuno'}
+- Messaggio chiave: ${answers.messaggio || ''}
+- Testi base già scritti: ${answers.parlato || 'nessuno — Claude genererà tutto'}
+- Call-to-action: ${answers.cta || 'contattaci'}
+- Note aggiuntive: ${answers.note || 'nessuna'}
+
+Genera esattamente ${qty} topic diversi tra loro.`;
+
+    const { default: Anthropic } = await import('@anthropic-ai/sdk');
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
+      max_tokens: 4000,
+      system: WIZARD_SYSTEM_PROMPT,
+      messages: [{ role: 'user', content: userMessage }],
+    });
+
+    const text      = response.content[0].text.trim();
+    const jsonMatch = text.match(/\[[\s\S]*\]/);
+    if (!jsonMatch) throw new Error('Claude non ha restituito un JSON valido');
+
+    let topics = JSON.parse(jsonMatch[0]);
+    // Normalizza e assegna id progressivi
+    topics = topics.slice(0, qty).map((t, i) => ({
+      id:       i + 1,
+      topic:    String(t.topic    || '').trim(),
+      pilastro: String(t.pilastro || 'tecnico').trim().toLowerCase(),
+      photoId:  String(t.photoId  || '').trim(),
+      parlato:  String(t.parlato  || '').trim(),
+      note:     String(t.note     || '').trim(),
+      status:   'pending',
+    })).filter(t => t.topic);
+
+    logger.info(`Wizard: generati ${topics.length} topic con Claude`);
+    res.json({ ok: true, count: topics.length, topics });
+  } catch (err) {
+    logger.error(`Wizard generate: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/wizard/export-xlsx — scarica i topic generati come file Excel
+app.post('/api/wizard/export-xlsx', (req, res) => {
+  try {
+    const { topics } = req.body;
+    if (!topics?.length) return res.status(400).json({ error: 'Nessun topic fornito' });
+
+    const data = topics.map(t => ({
+      topic:    t.topic,
+      pilastro: t.pilastro,
+      photoId:  t.photoId  || '',
+      parlato:  t.parlato  || '',
+      note:     t.note     || '',
+      status:   'pending',
+    }));
+    const ws = XLSX.utils.json_to_sheet(data);
+    ws['!cols'] = [{ wch: 60 }, { wch: 12 }, { wch: 20 }, { wch: 80 }, { wch: 30 }, { wch: 10 }];
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Topics');
+    const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
+    res.setHeader('Content-Disposition', `attachment; filename="2c-legnami-topics-wizard.xlsx"`);
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.send(buf);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/wizard/import — importa direttamente i topic generati nella pipeline
+app.post('/api/wizard/import', (req, res) => {
+  try {
+    const { topics } = req.body;
+    if (!topics?.length) return res.status(400).json({ error: 'Nessun topic fornito' });
+    const existing = readTopics();
+    const maxId    = existing.length ? Math.max(...existing.map(t => t.id)) : 0;
+    const toAdd    = topics.map((t, i) => ({ ...t, id: maxId + i + 1, status: 'pending' }));
+    saveTopics([...existing, ...toAdd]);
+    logger.info(`Wizard import: ${toAdd.length} topic aggiunti`);
+    res.json({ ok: true, count: toAdd.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // GET /api/topics/template — scarica template XLSX precompilato
 app.get('/api/topics/template', (_req, res) => {
   const data = [
