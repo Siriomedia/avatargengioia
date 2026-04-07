@@ -1,0 +1,19 @@
+# Secrets — MAI su GitHub
+.env
+.env.*
+config/google-credentials.json
+config-override.json
+
+# Node
+node_modules/
+npm-debug.log*
+
+# Output temporanei
+logs/*.log
+assets/output/
+*.mp4
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db

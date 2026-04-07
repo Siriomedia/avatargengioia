@@ -1,0 +1,10 @@
+.env
+.env.*
+node_modules/
+logs/
+assets/output/
+*.mp4
+*.tmp
+.DS_Store
+Thumbs.db
+npm-debug.log*

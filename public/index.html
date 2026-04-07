@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AvatarGenGioIA — MCP Dashboard</title>
+  <style>
+    /* ── Variables ───────────────────────────────────────────────────── */
+    :root {
+      --bg:           #0d0b09;
+      --surface:      #161210;
+      --surface2:     #1c1814;
+      --border:       rgba(240,160,48,.10);
+      --border-hover: rgba(240,160,48,.22);
+      --accent:       #f0a030;
+      --accent-dim:   #b97818;
+      --accent-glow:  rgba(240,160,48,.25);
+      --green:        #5dba7d;
+      --green-dim:    rgba(93,186,125,.15);
+      --green-border: rgba(93,186,125,.30);
+      --red:          #e05d5d;
+      --red-dim:      rgba(224,93,93,.15);
+      --red-border:   rgba(224,93,93,.30);
+      --blue:         #5ba4e0;
+      --yellow:       #e0b030;
+      --yellow-dim:   rgba(224,176,48,.15);
+      --yellow-border:rgba(224,176,48,.30);
+      --text:         #f2e8d8;
+      --text2:        #8a7860;
+      --text3:        #5a4e40;
+      --log-bg:       #08060400;
+      --radius:       16px;
+      --font-mono:    'Cascadia Code','Fira Code','Consolas',monospace;
+    }
+
+    /* ── Reset ───────────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient glow background */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(ellipse 60% 50% at 20% 10%,  rgba(240,160,48,.05) 0%, transparent 70%),
+        radial-gradient(ellipse 50% 40% at 80% 85%,  rgba(80,140,90,.04)  0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* ── Layout ──────────────────────────────────────────────────────── */
+    .wrap {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 24px 40px;
+      position: relative;
+      z-index: 1;
+    }
+
+    /* ── Header ──────────────────────────────────────────────────────── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 0 18px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 28px;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(140deg, var(--accent) 0%, var(--accent-dim) 100%);
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      box-shadow: 0 4px 24px var(--accent-glow);
+      flex-shrink: 0;
+    }
+
+    .logo h1 { font-size: 17px; font-weight: 700; letter-spacing: -.3px; }
+    .logo p  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    .header-right { display: flex; align-items: center; gap: 12px; }
+
+    /* Status pill */
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 14px;
+      border-radius: 100px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      font-size: 13px; font-weight: 500;
+      transition: border-color .2s;
+    }
+
+    .dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--text3);
+      transition: background .3s;
+    }
+    .dot.idle    { background: var(--text3); }
+    .dot.running { background: var(--accent); animation: pulse 1.2s ease infinite; }
+    .dot.success { background: var(--green); }
+    .dot.error   { background: var(--red); }
+
+    @keyframes pulse {
+      0%,100% { opacity:1; transform:scale(1); }
+      50%      { opacity:.5; transform:scale(1.4); }
+    }
+
+    /* ── Stats Grid ──────────────────────────────────────────────────── */
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px 20px 16px;
+      transition: border-color .2s, transform .15s;
+    }
+    .stat-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+    }
+
+    .stat-label {
+      font-size: 10.5px; font-weight: 700;
+      letter-spacing: .9px; text-transform: uppercase;
+      color: var(--text2);
+      margin-bottom: 10px;
+    }
+
+    .stat-value {
+      font-size: 19px; font-weight: 700;
+      line-height: 1.2;
+    }
+
+    .stat-sub { font-size: 11.5px; color: var(--text2); margin-top: 5px; }
+
+    /* ── Main 2-col grid ─────────────────────────────────────────────── */
+    .main {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .sidebar { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Panel ───────────────────────────────────────────────────────── */
+    .panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title { font-size: 13px; font-weight: 600; }
+    .panel-badge { font-size: 11.5px; color: var(--text2); }
+
+    .panel-body { padding: 16px 18px; }
+
+    /* ── Run Button ──────────────────────────────────────────────────── */
+    .run-btn {
+      width: 100%;
+      padding: 13px 18px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(140deg, var(--accent) 0%, var(--accent-dim) 100%);
+      color: #1a0e00;
+      font-size: 14px; font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 9px;
+      transition: all .2s;
+      box-shadow: 0 4px 20px var(--accent-glow);
+      margin-bottom: 12px;
+    }
+    .run-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px var(--accent-glow);
+    }
+    .run-btn:active:not(:disabled) { transform: translateY(0); }
+    .run-btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+
+    .run-btn-hint { font-size: 11.5px; color: var(--text2); text-align: center; }
+
+    /* ── Spinner ─────────────────────────────────────────────────────── */
+    .spin {
+      width: 15px; height: 15px;
+      border: 2px solid rgba(0,0,0,.25);
+      border-top-color: #1a0e00;
+      border-radius: 50%;
+      animation: rotate .6s linear infinite;
+      flex-shrink: 0;
+    }
+    @keyframes rotate { to { transform: rotate(360deg); } }
+
+    /* ── Steps List ──────────────────────────────────────────────────── */
+    .steps { list-style: none; }
+
+    .step {
+      display: flex; align-items: flex-start; gap: 11px;
+      padding: 11px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .step:last-child { border-bottom: none; }
+
+    .step-icon {
+      width: 26px; height: 26px; flex-shrink: 0;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 700;
+      border: 1.5px solid var(--border);
+      color: var(--text3);
+      transition: all .3s;
+    }
+    .step-icon.running {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: rgba(240,160,48,.10);
+      animation: pulse 1.2s ease infinite;
+    }
+    .step-icon.done {
+      border-color: var(--green);
+      color: var(--green);
+      background: var(--green-dim);
+    }
+    .step-icon.error {
+      border-color: var(--red);
+      color: var(--red);
+      background: var(--red-dim);
+    }
+    .step-icon.skipped {
+      border-color: var(--text3);
+      color: var(--text3);
+    }
+
+    .step-info { flex: 1; min-width: 0; }
+    .step-name { font-size: 12.5px; font-weight: 500; }
+    .step-detail {
+      font-size: 11px; color: var(--text2);
+      margin-top: 2px;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+
+    /* ── Config Keys ─────────────────────────────────────────────────── */
+    .cfg-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+    .cfg-item:last-child { border-bottom: none; }
+    .cfg-key { color: var(--text2); }
+
+    .tag {
+      padding: 2px 9px; border-radius: 100px;
+      font-size: 11px; font-weight: 600;
+    }
+    .tag-ok  { background: var(--green-dim);  color: var(--green);  border: 1px solid var(--green-border); }
+    .tag-err { background: var(--red-dim);    color: var(--red);    border: 1px solid var(--red-border);   }
+    .tag-wrn { background: var(--yellow-dim); color: var(--yellow); border: 1px solid var(--yellow-border);}
+
+    /* ── Log Panel ───────────────────────────────────────────────────── */
+    .log-panel {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex; flex-direction: column;
+      height: 100%;
+      min-height: 560px;
+    }
+
+    .log-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .log-actions { display: flex; align-items: center; gap: 8px; }
+
+    .icon-btn {
+      padding: 5px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      font-size: 11.5px;
+      cursor: pointer;
+      transition: all .15s;
+    }
+    .icon-btn:hover { background: var(--surface2); color: var(--text); border-color: var(--border-hover); }
+
+    .autoscroll-badge {
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 100px;
+      font-size: 11px;
+      background: var(--green-dim); color: var(--green);
+      border: 1px solid var(--green-border);
+      transition: opacity .2s;
+    }
+    .autoscroll-badge.off { opacity: .35; }
+
+    /* ── Log Viewer ──────────────────────────────────────────────────── */
+    .log-viewer {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 18px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.75;
+      background: #080604;
+      border-radius: 0 0 var(--radius) var(--radius);
+    }
+    .log-viewer::-webkit-scrollbar { width: 4px; }
+    .log-viewer::-webkit-scrollbar-track { background: transparent; }
+    .log-viewer::-webkit-scrollbar-thumb {
+      background: rgba(255,255,255,.08);
+      border-radius: 2px;
+    }
+
+    .log-empty {
+      height: 100%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--text3);
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    /* Log line coloring */
+    .ll { display: block; white-space: pre-wrap; word-break: break-all; padding: 0; }
+    .lts  { color: rgba(255,200,100,.18); }
+    .lINFO  { color: #6ab0d4; }
+    .lOK    { color: #5dba7d; }
+    .lWARN  { color: #d4a030; }
+    .lERROR { color: #e05d5d; }
+    .lmsg-INFO  { color: #c8dce8; }
+    .lmsg-OK    { color: #b8e8c8; }
+    .lmsg-WARN  { color: #e8d090; }
+    .lmsg-ERROR { color: #e8a0a0; }
+
+    /* ── Connection indicator ────────────────────────────────────────── */
+    .conn-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: var(--text3);
+      display: inline-block;
+      transition: background .3s;
+    }
+    .conn-dot.live { background: var(--green); animation: pulse 2s ease infinite; }
+
+    /* ── Responsive ──────────────────────────────────────────────────── */
+    @media (max-width: 1100px) {
+      .stats { grid-template-columns: repeat(2,1fr); }
+      .main  { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 600px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .wrap  { padding: 0 14px 32px; }
+    }
+
+    /* ── Fade-in animation ───────────────────────────────────────────── */
+    @keyframes fadeUp {
+      from { opacity:0; transform:translateY(6px); }
+      to   { opacity:1; transform:translateY(0); }
+    }
+    .stat-card  { animation: fadeUp .4s ease both; }
+    .stat-card:nth-child(1) { animation-delay: .05s; }
+    .stat-card:nth-child(2) { animation-delay: .10s; }
+    .stat-card:nth-child(3) { animation-delay: .15s; }
+    .stat-card:nth-child(4) { animation-delay: .20s; }
+
+    /* ── Tab Navigation ─────────────────────────────────────────────── */
+    .tabs {
+      display: flex; gap: 4px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0;
+    }
+
+    .tab-btn {
+      padding: 9px 20px 10px;
+      border-radius: 10px 10px 0 0;
+      border: 1px solid transparent;
+      border-bottom: none;
+      background: transparent;
+      color: var(--text2);
+      font-size: 13px; font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      position: relative; bottom: -1px;
+    }
+    .tab-btn:hover { color: var(--text); background: var(--surface); }
+    .tab-btn.active {
+      color: var(--accent);
+      background: var(--surface);
+      border-color: var(--border);
+      border-bottom-color: var(--surface);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    /* ── Topics Grid ─────────────────────────────────────────────────── */
+    .topics-grid {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) { .topics-grid { grid-template-columns: 1fr; } }
+
+    /* ── Format Guide ────────────────────────────────────────────────── */
+    .format-desc { font-size: 12.5px; color: var(--text2); margin-bottom: 16px; line-height: 1.5; }
+
+    .format-cols { display: flex; flex-direction: column; gap: 12px; }
+
+    .format-col {
+      padding: 12px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .format-col-name {
+      font-family: var(--font-mono);
+      font-size: 12.5px; font-weight: 700;
+      color: var(--accent);
+      margin-bottom: 4px;
+    }
+    .format-col-name .required { color: var(--red); margin-left: 2px; }
+
+    .format-col-desc  { font-size: 11.5px; color: var(--text2); line-height: 1.5; margin-bottom: 5px; }
+    .format-col-example { font-family: var(--font-mono); font-size: 10.5px; color: var(--text3); }
+
+    .format-col-values { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 5px; }
+
+    .val-badge {
+      padding: 2px 9px; border-radius: 6px; font-size: 11px; font-weight: 600;
+      background: var(--surface); border: 1px solid var(--border); color: var(--text2);
+      font-family: var(--font-mono);
+    }
+    .val-badge.val-pending { background: var(--yellow-dim);  color: var(--yellow); border-color: var(--yellow-border); }
+    .val-badge.val-done    { background: var(--green-dim);   color: var(--green);  border-color: var(--green-border);  }
+    .val-badge.val-skip    { background: var(--red-dim);     color: var(--red);    border-color: var(--red-border);    }
+
+    .format-note {
+      margin-top: 16px; padding: 10px 14px;
+      border-radius: 10px; font-size: 11.5px;
+      background: rgba(240,160,48,.06);
+      border: 1px solid rgba(240,160,48,.18);
+      color: var(--text2); line-height: 1.6;
+    }
+    .format-note code {
+      font-family: var(--font-mono); font-size: 10.5px;
+      color: var(--accent); background: rgba(240,160,48,.10);
+      padding: 1px 5px; border-radius: 4px;
+    }
+
+    /* ── Drop Zone ───────────────────────────────────────────────────── */
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 14px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      margin-bottom: 16px;
+      background: var(--surface2);
+    }
+    .drop-zone:hover, .drop-zone.dragging {
+      border-color: var(--accent);
+      background: rgba(240,160,48,.05);
+    }
+    .drop-icon  { font-size: 30px; margin-bottom: 8px; }
+    .drop-title { font-size: 13.5px; font-weight: 600; margin-bottom: 5px; }
+    .drop-sub   { font-size: 11.5px; color: var(--text2); }
+
+    .upload-feedback {
+      margin-top: 10px; padding: 8px 14px;
+      border-radius: 8px; font-size: 12px; font-weight: 500;
+    }
+    .upload-feedback.ok  { background: var(--green-dim);  color: var(--green); border: 1px solid var(--green-border); }
+    .upload-feedback.err { background: var(--red-dim);    color: var(--red);   border: 1px solid var(--red-border);   }
+
+    /* ── Topics Stats Bar ────────────────────────────────────────────── */
+    .topics-stats {
+      display: grid; grid-template-columns: repeat(4, 1fr);
+      gap: 8px; margin-bottom: 16px;
+    }
+    .ts-item {
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+    }
+    .ts-item.ts-pending { border-color: var(--yellow-border); background: var(--yellow-dim); }
+    .ts-item.ts-done    { border-color: var(--green-border);  background: var(--green-dim);  }
+    .ts-item.ts-skip    { border-color: var(--red-border);    background: var(--red-dim);    }
+    .ts-num   { font-size: 20px; font-weight: 700; }
+    .ts-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .6px; color: var(--text2); }
+    .ts-item.ts-pending .ts-label { color: var(--yellow); }
+    .ts-item.ts-done    .ts-label { color: var(--green);  }
+    .ts-item.ts-skip    .ts-label { color: var(--red);    }
+
+    /* ── Topics Table ────────────────────────────────────────────────── */
+    .topics-table-wrap {
+      border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; max-height: 440px; overflow-y: auto;
+    }
+    .topics-table-wrap::-webkit-scrollbar { width: 4px; }
+    .topics-table-wrap::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+
+    .topics-table {
+      width: 100%; border-collapse: collapse;
+      font-size: 12px;
+    }
+    .topics-table thead th {
+      background: var(--surface2);
+      padding: 10px 14px;
+      text-align: left; font-size: 10.5px; font-weight: 700;
+      text-transform: uppercase; letter-spacing: .7px; color: var(--text2);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+      position: sticky; top: 0; z-index: 1;
+    }
+    .topics-table tbody tr {
+      border-bottom: 1px solid var(--border);
+      transition: background .15s;
+    }
+    .topics-table tbody tr:last-child { border-bottom: none; }
+    .topics-table tbody tr:hover { background: var(--surface2); }
+    .topics-table td {
+      padding: 10px 14px; vertical-align: middle;
+      max-width: 280px;
+    }
+    .td-topic {
+      font-size: 12px; color: var(--text);
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .td-id    { color: var(--text3); font-family: var(--font-mono); font-size: 11px; width: 30px; }
+    .td-small { color: var(--text2); font-size: 11.5px; }
+    .td-actions { white-space: nowrap; }
+
+    .act-btn {
+      padding: 3px 10px; border-radius: 6px;
+      border: 1px solid var(--border);
+      background: transparent; cursor: pointer;
+      font-size: 11px; color: var(--text2);
+      transition: all .15s; margin-right: 4px;
+    }
+    .act-btn:hover { background: var(--surface2); color: var(--text); }
+    .act-btn.done-btn:hover { background: var(--green-dim);  color: var(--green); border-color: var(--green-border); }
+    .act-btn.skip-btn:hover { background: var(--yellow-dim); color: var(--yellow); border-color: var(--yellow-border); }
+    .act-btn.del-btn:hover  { background: var(--red-dim);    color: var(--red);   border-color: var(--red-border); }
+
+    /* ── Topics Empty ────────────────────────────────────────────────── */
+    .topics-empty {
+      padding: 40px 20px; text-align: center;
+    }
+    .te-icon { font-size: 36px; margin-bottom: 10px; opacity: .35; }
+    .te-text { font-size: 12.5px; color: var(--text3); }
+
+    /* ── Configurazioni ──────────────────────────────────────────────── */
+    .cfg-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) { .cfg-grid { grid-template-columns: 1fr; } }
+
+    .cfg-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+
+    .cfg-section-head {
+      display: flex; align-items: center; gap: 10px;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border);
+      background: var(--surface2);
+    }
+    .cfg-section-icon { font-size: 18px; flex-shrink: 0; }
+    .cfg-section-title { font-size: 13.5px; font-weight: 700; }
+    .cfg-section-subtitle { font-size: 11px; color: var(--text2); margin-top: 1px; }
+    .cfg-section-badge {
+      margin-left: auto;
+      padding: 2px 10px; border-radius: 100px;
+      font-size: 11px; font-weight: 600;
+    }
+
+    .cfg-section-body { padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+    .cfg-field { display: flex; flex-direction: column; gap: 5px; }
+    .cfg-label {
+      font-size: 11.5px; font-weight: 600;
+      color: var(--text2);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .cfg-label .req { color: var(--red); }
+    .cfg-label .opt { color: var(--text3); font-weight: 400; font-size: 10.5px; }
+    .cfg-desc { font-size: 11px; color: var(--text3); line-height: 1.5; }
+
+    .cfg-input-wrap {
+      display: flex; align-items: center; gap: 6px;
+    }
+
+    .cfg-input {
+      flex: 1;
+      padding: 9px 12px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text);
+      font-size: 12.5px;
+      font-family: var(--font-mono);
+      transition: border-color .15s, box-shadow .15s;
+      outline: none;
+    }
+    .cfg-input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .cfg-input::placeholder { color: var(--text3); }
+    .cfg-input.is-saved { border-color: var(--green); }
+
+    .cfg-eye-btn {
+      padding: 8px 10px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      color: var(--text2);
+      cursor: pointer;
+      font-size: 14px; line-height: 1;
+      transition: all .15s;
+      flex-shrink: 0;
+    }
+    .cfg-eye-btn:hover { background: var(--surface); color: var(--text); border-color: var(--border-hover); }
+
+    .cfg-browse-btn {
+      padding: 8px 12px;
+      background: rgba(240,160,48,.10);
+      border: 1px solid rgba(240,160,48,.3);
+      border-radius: 9px;
+      color: var(--accent);
+      cursor: pointer;
+      font-size: 11.5px; font-weight: 600;
+      transition: all .15s; flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .cfg-browse-btn:hover { background: rgba(240,160,48,.18); }
+    .cfg-browse-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+    .cfg-save-row {
+      display: flex; align-items: center; gap: 10px;
+      padding-top: 4px;
+      border-top: 1px solid var(--border);
+      margin-top: 4px;
+    }
+
+    .cfg-save-btn {
+      padding: 9px 20px;
+      background: linear-gradient(140deg, var(--accent) 0%, var(--accent-dim) 100%);
+      border: none; border-radius: 10px;
+      color: #1a0e00; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: all .2s;
+      box-shadow: 0 2px 14px var(--accent-glow);
+    }
+    .cfg-save-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 20px var(--accent-glow); }
+    .cfg-save-btn:disabled { opacity: .45; cursor: not-allowed; transform: none !important; }
+
+    .cfg-feedback {
+      font-size: 12px; font-weight: 500;
+      transition: opacity .3s;
+    }
+    .cfg-feedback.ok    { color: var(--green); }
+    .cfg-feedback.err   { color: var(--red); }
+    .cfg-feedback.empty { opacity: 0; }
+
+    /* ── HeyGen Browser (avatar / voci) ────── */
+    .heygen-browser {
+      margin-top: 8px;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+      display: none;
+    }
+    .heygen-browser.open { display: block; }
+
+    .hbr-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px;
+      background: var(--surface2);
+      border-bottom: 1px solid var(--border);
+    }
+    .hbr-title { font-size: 12px; font-weight: 600; }
+    .hbr-close {
+      background: none; border: none; color: var(--text2);
+      cursor: pointer; font-size: 16px; padding: 2px 6px;
+      border-radius: 6px; transition: all .15s;
+    }
+    .hbr-close:hover { background: var(--surface); color: var(--text); }
+
+    .hbr-search-wrap { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+    .hbr-search {
+      width: 100%;
+      padding: 7px 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text); font-size: 12px; outline: none;
+      transition: border-color .15s;
+    }
+    .hbr-search:focus { border-color: var(--accent); }
+
+    .hbr-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 8px;
+      padding: 12px 14px;
+      max-height: 320px; overflow-y: auto;
+    }
+    .hbr-list::-webkit-scrollbar { width: 4px; }
+    .hbr-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+
+    .hbr-card {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 10px 8px;
+      cursor: pointer; transition: all .15s;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      text-align: center; background: var(--surface2);
+    }
+    .hbr-card:hover { border-color: var(--accent); background: rgba(240,160,48,.06); }
+    .hbr-card.selected { border-color: var(--accent); background: rgba(240,160,48,.12); }
+
+    .hbr-thumb {
+      width: 56px; height: 56px; border-radius: 8px;
+      background: var(--surface); object-fit: cover;
+      border: 1px solid var(--border);
+      font-size: 22px; display: flex; align-items: center; justify-content: center;
+    }
+    .hbr-name { font-size: 10.5px; font-weight: 600; color: var(--text); line-height: 1.3; word-break: break-word; }
+    .hbr-id   { font-size: 9.5px; color: var(--text3); font-family: var(--font-mono); word-break: break-all; }
+    .hbr-meta { font-size: 9.5px; color: var(--text2); }
+
+    .hbr-voice-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      border: 1.5px solid var(--border);
+      border-radius: 9px;
+      cursor: pointer; transition: all .15s;
+      background: var(--surface2);
+    }
+    .hbr-voice-row:hover { border-color: var(--accent); background: rgba(240,160,48,.06); }
+    .hbr-voice-row.selected { border-color: var(--accent); background: rgba(240,160,48,.12); }
+    .hbr-voice-list { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; max-height: 280px; overflow-y: auto; }
+    .hbr-voice-list::-webkit-scrollbar { width: 4px; }
+    .hbr-voice-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,.08); border-radius: 2px; }
+    .hbr-voice-name { font-size: 12px; font-weight: 600; flex: 1; }
+    .hbr-voice-lang { font-size: 10.5px; color: var(--text2); }
+    .hbr-voice-id   { font-size: 9.5px; color: var(--text3); font-family: var(--font-mono); }
+
+    .hbr-loading { padding: 28px; text-align: center; color: var(--text2); font-size: 12px; }
+    .hbr-error   { padding: 16px 14px; color: var(--red); font-size: 11.5px; background: var(--red-dim);
+                   border-top: 1px solid var(--red-border); }
+
+    .cfg-full-width { grid-column: 1 / -1; }
+
+    /* ── Motion Engine Selector ───────────────────────────── */
+    .motion-engine-pills {
+      display: flex; gap: 8px; flex-wrap: wrap;
+    }
+    .me-pill {
+      display: flex; align-items: center; gap: 8px;
+      padding: 10px 16px;
+      border: 2px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer; transition: all .18s;
+      background: var(--surface2);
+      flex: 1; min-width: 160px;
+    }
+    .me-pill:hover { border-color: var(--border-hover); background: var(--surface); }
+    .me-pill.selected {
+      border-color: var(--accent);
+      background: rgba(240,160,48,.08);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+    .me-pill-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 800; flex-shrink: 0;
+      background: var(--surface); border: 1.5px solid var(--border);
+    }
+    .me-pill.selected .me-pill-icon {
+      background: var(--accent); border-color: var(--accent); color: #1a0e00;
+    }
+    .me-pill-info { flex: 1; }
+    .me-pill-title { font-size: 13px; font-weight: 700; }
+    .me-pill-sub   { font-size: 11px; color: var(--text2); margin-top: 1px; }
+    .me-pill-check {
+      font-size: 16px; color: var(--accent);
+      opacity: 0; transition: opacity .18s;
+    }
+    .me-pill.selected .me-pill-check { opacity: 1; }
+    .badge-iv {
+      display: inline-block; padding: 1px 6px; border-radius: 5px;
+      font-size: 9.5px; font-weight: 700; letter-spacing: .4px;
+      background: rgba(91,164,224,.18); color: var(--blue);
+      border: 1px solid rgba(91,164,224,.3);
+      margin-left: 4px; vertical-align: middle;
+    }
+    .badge-iii {
+      display: inline-block; padding: 1px 6px; border-radius: 5px;
+      font-size: 9.5px; font-weight: 700; letter-spacing: .4px;
+      background: rgba(93,186,125,.18); color: var(--green);
+      border: 1px solid rgba(93,186,125,.3);
+      margin-left: 4px; vertical-align: middle;
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ── Header ──────────────────────────────────────────────────────── -->
+  <header>
+    <div class="logo">
+      <div class="logo-icon">🪵</div>
+      <div>
+        <h1>AvatarGenGioIA</h1>
+        <p>MCP Pipeline Dashboard</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <span title="Connessione SSE">
+        <span id="conn-dot" class="conn-dot"></span>
+      </span>
+      <div class="status-pill">
+        <div id="status-dot" class="dot idle"></div>
+        <span id="status-text">In attesa…</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- ── Tab Navigation ─────────────────────────────────────────────── -->
+  <nav class="tabs">
+    <button class="tab-btn active" onclick="switchTab('pipeline', this)">🎬 Pipeline</button>
+    <button class="tab-btn" onclick="switchTab('topics', this)">📋 Gestione Topic</button>
+    <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Configurazioni</button>
+  </nav>
+
+  <!-- ══ TAB: PIPELINE ════════════════════════════════════════════════ -->
+  <div id="tab-pipeline" class="tab-content active">
+
+  <!-- ── Stats ───────────────────────────────────────────────────────── -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-label">Stato Pipeline</div>
+      <div id="s-status" class="stat-value">—</div>
+      <div class="stat-sub">Sistema operativo</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ultima Esecuzione</div>
+      <div id="s-lastrun" class="stat-value">—</div>
+      <div id="s-lastresult" class="stat-sub">Nessuna esecuzione</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Cron Schedule</div>
+      <div id="s-cron" class="stat-value" style="font-size:14px;font-family:var(--font-mono)">—</div>
+      <div class="stat-sub">Fuso orario: Europe/Rome</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Ambiente</div>
+      <div id="s-env" class="stat-value">—</div>
+      <div class="stat-sub">Node.js runtime</div>
+    </div>
+  </div>
+
+  <!-- ── Main Grid ───────────────────────────────────────────────────── -->
+  <div class="main">
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Controls -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Controlli</span>
+        </div>
+        <div class="panel-body">
+          <button id="run-btn" class="run-btn" onclick="triggerRun()">
+            <span id="run-icon">▶</span>
+            <span id="run-label">Esegui Ora</span>
+          </button>
+          <p class="run-btn-hint">Il cron scheduler è attivo in automatico</p>
+        </div>
+      </div>
+
+      <!-- Pipeline Steps -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Passi Pipeline</span>
+          <span id="steps-badge" class="panel-badge">—</span>
+        </div>
+        <div class="panel-body" style="padding: 10px 18px;">
+          <ul id="steps-list" class="steps">
+            <li class="step" data-step="Topic">
+              <div class="step-icon">1</div>
+              <div class="step-info">
+                <div class="step-name">Seleziona Topic</div>
+                <div class="step-detail">Topics JSON / Upload XLSX</div>
+              </div>
+            </li>
+            <li class="step" data-step="Script">
+              <div class="step-icon">2</div>
+              <div class="step-info">
+                <div class="step-name">Genera Script</div>
+                <div class="step-detail">Claude AI</div>
+              </div>
+            </li>
+            <li class="step" data-step="Video HeyGen">
+              <div class="step-icon">3</div>
+              <div class="step-info">
+                <div class="step-name">Crea Video</div>
+                <div class="step-detail">HeyGen API</div>
+              </div>
+            </li>
+            <li class="step" data-step="Assembla Reel">
+              <div class="step-icon">4</div>
+              <div class="step-info">
+                <div class="step-name">Assembla Reel</div>
+                <div class="step-detail">FFmpeg</div>
+              </div>
+            </li>
+            <li class="step" data-step="Invia Telegram">
+              <div class="step-icon">5</div>
+              <div class="step-info">
+                <div class="step-name">Invia su Telegram</div>
+                <div class="step-detail">Telegram Bot</div>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Config Keys -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">Configurazioni</span>
+        </div>
+        <div class="panel-body" style="padding: 6px 18px;">
+          <div class="cfg-item">
+            <span class="cfg-key">HeyGen</span>
+            <span id="k-heygen" class="tag tag-wrn">—</span>
+          </div>
+          <div class="cfg-item">
+            <span class="cfg-key">Anthropic (Claude)</span>
+            <span id="k-anthropic" class="tag tag-wrn">—</span>
+          </div>
+          <div class="cfg-item">
+            <span class="cfg-key">Meta / Instagram</span>
+            <span id="k-meta" class="tag tag-wrn">—</span>
+          </div>
+          <div class="cfg-item">
+            <span class="cfg-key">Archivio Topics</span>
+            <span id="k-topics" class="tag tag-wrn">—</span>
+          </div>
+          <div class="cfg-item">
+            <span class="cfg-key">Telegram Bot</span>
+            <span id="k-telegram" class="tag tag-wrn">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /sidebar -->
+
+    <!-- Log Panel -->
+    <div class="log-panel">
+      <div class="log-head">
+        <span class="panel-title">Log in Tempo Reale</span>
+        <div class="log-actions">
+          <span id="autoscroll-badge" class="autoscroll-badge">
+            <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
+              <path d="M5 1v6M2 5l3 3 3-3"/>
+            </svg>
+            Auto-scroll
+          </span>
+          <button class="icon-btn" onclick="clearLog()">🗑 Pulisci</button>
+        </div>
+      </div>
+      <div id="log-viewer" class="log-viewer">
+        <div class="log-empty" id="log-empty">
+          <span>In attesa di log…</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  </div><!-- /tab-pipeline -->
+
+  <!-- ══ TAB: GESTIONE TOPIC ══════════════════════════════════════════ -->
+  <div id="tab-topics" class="tab-content">
+    <div class="topics-grid">
+
+      <!-- Colonna sinistra: Guida Formato -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">📋 Formato File Excel</span>
+          <a href="/api/topics/template" class="icon-btn" style="text-decoration:none">⬇ Template</a>
+        </div>
+        <div class="panel-body">
+          <p class="format-desc">Il file <strong>.xlsx</strong> deve avere queste colonne nella <strong>prima riga</strong> (intestazione). Scarica il template per iniziare subito.</p>
+          <div class="format-cols">
+
+            <div class="format-col">
+              <div class="format-col-name">topic <span class="required">*</span></div>
+              <div class="format-col-desc">Argomento del video Instagram. Scrivi in italiano, chiaro e conciso.</div>
+              <div class="format-col-example">es. &ldquo;essiccazione naturale vs forno&rdquo;</div>
+            </div>
+
+            <div class="format-col">
+              <div class="format-col-name">pilastro <span class="required">*</span></div>
+              <div class="format-col-desc">Categoria del contenuto. Valori accettati:</div>
+              <div class="format-col-values">
+                <span class="val-badge">tecnico</span>
+                <span class="val-badge">prodotto</span>
+                <span class="val-badge">servizio</span>
+                <span class="val-badge">brand</span>
+              </div>
+            </div>
+
+            <div class="format-col">
+              <div class="format-col-name">photoId</div>
+              <div class="format-col-desc">Nome del file foto nella cartella <code>assets/photos/</code>. Opzionale.</div>
+              <div class="format-col-example">es. &ldquo;faggio_premium.jpg&rdquo;</div>
+            </div>
+
+            <div class="format-col">
+              <div class="format-col-name">note</div>
+              <div class="format-col-desc">Note libere per uso interno. Non vengono usate dalla pipeline.</div>
+              <div class="format-col-example">es. &ldquo;Da pubblicare in alta stagione&rdquo;</div>
+            </div>
+
+            <div class="format-col" style="border-color:rgba(240,160,48,.35);background:rgba(240,160,48,.04)">
+              <div class="format-col-name">parlato &nbsp;<span style="font-size:10px;font-weight:400;color:var(--text2);font-family:sans-serif">— opzionale, bypassa Claude</span></div>
+              <div class="format-col-desc">Testo parlato completo già scritto da te. Se compilato, <strong style="color:var(--accent)">Claude non viene chiamato</strong> e questo testo viene passato direttamente a HeyGen. Se vuoto, Claude genera il testo automaticamente.</div>
+              <div class="format-col-example">es. &ldquo;La legna umida crea variazioni di temperatura nel forno. Ogni nostro lotto viene testato con igrometro&hellip; Se vuoi provare la nostra legna, contattaci.&rdquo;</div>
+              <div style="margin-top:6px;font-size:10.5px;color:var(--text3)">⏱ 80&ndash;120 parole &middot; 30&ndash;45 secondi &middot; termina sempre con la CTA fissa</div>
+            </div>
+
+            <div class="format-col">
+              <div class="format-col-name">status</div>
+              <div class="format-col-desc">Stato iniziale del topic. Se omesso → <code>pending</code>.</div>
+              <div class="format-col-values">
+                <span class="val-badge val-pending">pending</span>
+                <span class="val-badge val-done">done</span>
+                <span class="val-badge val-skip">skip</span>
+              </div>
+            </div>
+
+          </div>
+          <div class="format-note">
+            <strong>⚠ Note:</strong> I campi con <span class="required">*</span> sono obbligatori.
+            La prima riga deve essere l&rsquo;intestazione con i nomi esatti delle colonne.
+            Le righe con <code>topic</code> vuoto vengono ignorate.
+            Caricare un nuovo file <strong>sovrascrive</strong> i topic precedenti.
+          </div>
+        </div>
+      </div>
+
+      <!-- Colonna destra: Upload + Tabella -->
+      <div class="panel">
+        <div class="panel-head">
+          <span class="panel-title">📂 Topic Caricati</span>
+          <span id="topics-count-badge" class="panel-badge">—</span>
+        </div>
+        <div class="panel-body">
+
+          <!-- Drop Zone -->
+          <div id="drop-zone" class="drop-zone"
+               onclick="document.getElementById('file-input').click()"
+               ondragover="onDragOver(event)" ondragleave="onDragLeave(event)" ondrop="onDrop(event)">
+            <input type="file" id="file-input" accept=".xlsx,.xls" style="display:none"
+                   onchange="handleFileSelect(this.files[0])">
+            <div class="drop-icon">📊</div>
+            <div class="drop-title">Trascina qui il file Excel</div>
+            <div class="drop-sub">oppure clicca per selezionare &middot; .xlsx / .xls &middot; max 5&nbsp;MB</div>
+            <div id="upload-feedback" class="upload-feedback" style="display:none"></div>
+          </div>
+
+          <!-- Stats row -->
+          <div id="topics-stats" class="topics-stats" style="display:none">
+            <div class="ts-item"><span id="ts-total"   class="ts-num">0</span><span class="ts-label">Totale</span></div>
+            <div class="ts-item ts-pending"><span id="ts-pending" class="ts-num">0</span><span class="ts-label">In coda</span></div>
+            <div class="ts-item ts-done">   <span id="ts-done"    class="ts-num">0</span><span class="ts-label">Completati</span></div>
+            <div class="ts-item ts-skip">   <span id="ts-skip"    class="ts-num">0</span><span class="ts-label">Saltati</span></div>
+          </div>
+
+          <!-- Topics Table -->
+          <div id="topics-table-wrap" class="topics-table-wrap" style="display:none">
+            <table class="topics-table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Topic</th>
+                  <th>Pilastro</th>
+                  <th>Foto</th>
+                  <th>Parlato</th>
+                  <th>Stato</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody id="topics-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Empty state -->
+          <div id="topics-empty" class="topics-empty">
+            <div class="te-icon">📋</div>
+            <div class="te-text">Nessun topic caricato. Importa un file Excel per iniziare.</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div><!-- /topics-grid -->
+  </div><!-- /tab-topics -->
+
+  <!-- ══ TAB: CONFIGURAZIONI ═════════════════════════════════════════ -->
+  <div id="tab-config" class="tab-content">
+
+    <div class="cfg-grid">
+
+      <!-- ── HeyGen ─────────────────────────────────────────────────── -->
+      <div class="cfg-section cfg-full-width">
+        <div class="cfg-section-head">
+          <span class="cfg-section-icon">🎥</span>
+          <div>
+            <div class="cfg-section-title">HeyGen</div>
+            <div class="cfg-section-subtitle">Generazione video avatar AI · api.heygen.com</div>
+          </div>
+          <span id="badge-heygen" class="cfg-section-badge tag tag-wrn">—</span>
+        </div>
+        <div class="cfg-section-body">
+          <!-- API Key -->
+          <div class="cfg-field">
+            <label class="cfg-label">API Key <span class="req">*</span></label>
+            <div class="cfg-desc">Trovabile su <strong>app.heygen.com → API</strong>. Necessaria per generare video e caricare avatar/voci.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-HEYGEN_API_KEY" class="cfg-input" type="password" placeholder="••••••••••••••••••••••••" autocomplete="off" />
+              <button class="cfg-eye-btn" onclick="toggleEye('cfg-HEYGEN_API_KEY',this)" title="Mostra/Nascondi">👁</button>
+              <button id="btn-load-heygen" class="cfg-browse-btn" onclick="loadHeygenData()" title="Recupera avatar e voci">⟳ Carica</button>
+            </div>
+          </div>
+
+          <!-- Motion Engine -->
+          <div class="cfg-field">
+            <label class="cfg-label">Motion Engine</label>
+            <div class="cfg-desc">Versione del motore di animazione avatar. <strong>Avatar III</strong> è consigliato: più stabile, nessun limite di utilizzo. <strong>Avatar IV</strong> adatta il movimento allo script ma è Premium.</div>
+            <div class="motion-engine-pills">
+              <div id="me-pill-3" class="me-pill selected" onclick="selectMotionEngine('3')">
+                <div class="me-pill-icon">III</div>
+                <div class="me-pill-info">
+                  <div class="me-pill-title">Avatar III</div>
+                  <div class="me-pill-sub">Utilizzo illimitato &middot; Stabile</div>
+                </div>
+                <div class="me-pill-check">✓</div>
+              </div>
+              <div id="me-pill-4" class="me-pill" onclick="selectMotionEngine('4')">
+                <div class="me-pill-icon">IV</div>
+                <div class="me-pill-info">
+                  <div class="me-pill-title">Avatar IV <span class="badge-iv">Premium</span></div>
+                  <div class="me-pill-sub">Movimento adattivo allo script</div>
+                </div>
+                <div class="me-pill-check">✓</div>
+              </div>
+            </div>
+            <input type="hidden" id="cfg-HEYGEN_MOTION_ENGINE" value="3" />
+          </div>
+
+          <!-- Avatar ID -->
+          <div class="cfg-field">
+            <label class="cfg-label">Avatar ID <span class="req">*</span></label>
+            <div class="cfg-desc">ID dell'avatar che parlerà nei tuoi video. Clicca <strong>Sfoglia Avatar</strong> per sceglierlo dalla lista.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-HEYGEN_AVATAR_ID" class="cfg-input" type="text" placeholder="es. Anna_public_3_20240108" autocomplete="off" />
+              <button id="btn-browse-avatars" class="cfg-browse-btn" onclick="toggleBrowser('avatars')" disabled>👤 Sfoglia Avatar</button>
+            </div>
+            <!-- Avatar Browser -->
+            <div id="browser-avatars" class="heygen-browser">
+              <div class="hbr-head">
+                <span class="hbr-title" id="avatars-count-label">Avatar disponibili</span>
+                <button class="hbr-close" onclick="toggleBrowser('avatars')">✕</button>
+              </div>
+              <div class="hbr-search-wrap">
+                <input class="hbr-search" id="avatars-search" placeholder="Cerca avatar per nome o ID…" oninput="filterBrowser('avatars')" />
+              </div>
+              <div id="avatars-list" class="hbr-list">
+                <div class="hbr-loading">⟳ Caricamento…</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Voice ID -->
+          <div class="cfg-field">
+            <label class="cfg-label">Voice ID <span class="req">*</span></label>
+            <div class="cfg-desc">ID della voce usata dall'avatar. Clicca <strong>Sfoglia Voci</strong> per ascoltare e scegliere.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-HEYGEN_VOICE_ID" class="cfg-input" type="text" placeholder="es. 2d5b0e6cf36f460aa7fc47e3eee4ba54" autocomplete="off" />
+              <button id="btn-browse-voices" class="cfg-browse-btn" onclick="toggleBrowser('voices')" disabled>🔊 Sfoglia Voci</button>
+            </div>
+            <!-- Voices Browser -->
+            <div id="browser-voices" class="heygen-browser">
+              <div class="hbr-head">
+                <span class="hbr-title" id="voices-count-label">Voci disponibili</span>
+                <button class="hbr-close" onclick="toggleBrowser('voices')">✕</button>
+              </div>
+              <div class="hbr-search-wrap">
+                <input class="hbr-search" id="voices-search" placeholder="Cerca per nome, lingua o ID…" oninput="filterBrowser('voices')" />
+              </div>
+              <div id="voices-list" class="hbr-voice-list">
+                <div class="hbr-loading">⟳ Caricamento…</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cfg-save-row">
+            <button class="cfg-save-btn" onclick="saveSection('heygen')">💾 Salva HeyGen</button>
+            <span id="fb-heygen" class="cfg-feedback empty">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Anthropic (Claude) ──────────────────────────────────────── -->
+      <div class="cfg-section">
+        <div class="cfg-section-head">
+          <span class="cfg-section-icon">🧠</span>
+          <div>
+            <div class="cfg-section-title">Anthropic (Claude)</div>
+            <div class="cfg-section-subtitle">Generazione script AI · console.anthropic.com</div>
+          </div>
+          <span id="badge-anthropic" class="cfg-section-badge tag tag-wrn">—</span>
+        </div>
+        <div class="cfg-section-body">
+          <div class="cfg-field">
+            <label class="cfg-label">API Key <span class="req">*</span></label>
+            <div class="cfg-desc">Trovabile su <strong>console.anthropic.com → API Keys</strong>. Usata per generare il testo parlato da Claude quando il campo <em>parlato</em> è vuoto nel topic.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-ANTHROPIC_API_KEY" class="cfg-input" type="password" placeholder="sk-ant-••••••••••••••••••" autocomplete="off" />
+              <button class="cfg-eye-btn" onclick="toggleEye('cfg-ANTHROPIC_API_KEY',this)">👁</button>
+            </div>
+          </div>
+          <div class="cfg-field">
+            <label class="cfg-label">Modello <span class="opt">(opzionale)</span></label>
+            <div class="cfg-desc">Modello Claude da usare per la generazione degli script.</div>
+            <select id="cfg-ANTHROPIC_MODEL" class="cfg-input" style="font-family:sans-serif">
+              <option value="claude-sonnet-4-20250514">claude-sonnet-4 (consigliato)</option>
+              <option value="claude-opus-4-5">claude-opus-4.5 (più potente)</option>
+              <option value="claude-haiku-4-5">claude-haiku-4.5 (veloce)</option>
+              <option value="claude-3-7-sonnet-20250219">claude-3.7-sonnet</option>
+              <option value="claude-3-5-sonnet-20241022">claude-3.5-sonnet</option>
+            </select>
+          </div>
+          <div class="cfg-save-row">
+            <button class="cfg-save-btn" onclick="saveSection('anthropic')">💾 Salva Anthropic</button>
+            <span id="fb-anthropic" class="cfg-feedback empty">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Meta / Instagram ───────────────────────────────────────── -->
+      <div class="cfg-section">
+        <div class="cfg-section-head">
+          <span class="cfg-section-icon">📸</span>
+          <div>
+            <div class="cfg-section-title">Meta / Instagram</div>
+            <div class="cfg-section-subtitle">Pubblicazione automatica · developers.facebook.com</div>
+          </div>
+          <span id="badge-meta" class="cfg-section-badge tag tag-wrn">—</span>
+        </div>
+        <div class="cfg-section-body">
+          <div class="cfg-field">
+            <label class="cfg-label">Access Token <span class="opt">(opzionale)</span></label>
+            <div class="cfg-desc">Token di accesso Meta con permessi <code>instagram_basic</code>, <code>instagram_content_publish</code>. Generabile da <strong>Meta for Developers → Graph API Explorer</strong>.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-META_ACCESS_TOKEN" class="cfg-input" type="password" placeholder="EAAxxxxxxxxxxxxxxxx" autocomplete="off" />
+              <button class="cfg-eye-btn" onclick="toggleEye('cfg-META_ACCESS_TOKEN',this)">👁</button>
+            </div>
+          </div>
+          <div class="cfg-field">
+            <label class="cfg-label">Instagram Account ID <span class="opt">(opzionale)</span></label>
+            <div class="cfg-desc">ID numerico del profilo Instagram Business. Recuperabile con la chiamata <code>GET /me/accounts</code> nell'Explorer.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-INSTAGRAM_ACCOUNT_ID" class="cfg-input" type="text" placeholder="es. 17841400000000000" autocomplete="off" />
+            </div>
+          </div>
+          <div class="cfg-save-row">
+            <button class="cfg-save-btn" onclick="saveSection('meta')">💾 Salva Meta</button>
+            <span id="fb-meta" class="cfg-feedback empty">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Telegram Bot ────────────────────────────────────────────── -->
+      <div class="cfg-section">
+        <div class="cfg-section-head">
+          <span class="cfg-section-icon">✈️</span>
+          <div>
+            <div class="cfg-section-title">Telegram Bot</div>
+            <div class="cfg-section-subtitle">Notifiche e comandi remoti · t.me/BotFather</div>
+          </div>
+          <span id="badge-telegram" class="cfg-section-badge tag tag-wrn">—</span>
+        </div>
+        <div class="cfg-section-body">
+          <div class="cfg-field">
+            <label class="cfg-label">Bot Token <span class="opt">(opzionale)</span></label>
+            <div class="cfg-desc">Token ottenuto da <strong>@BotFather</strong> su Telegram con il comando <code>/newbot</code>.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-TELEGRAM_BOT_TOKEN" class="cfg-input" type="password" placeholder="123456789:AAFxxxxxxxxxxxxxxxxxxxx" autocomplete="off" />
+              <button class="cfg-eye-btn" onclick="toggleEye('cfg-TELEGRAM_BOT_TOKEN',this)">👁</button>
+            </div>
+          </div>
+          <div class="cfg-field">
+            <label class="cfg-label">Chat ID <span class="opt">(opzionale)</span></label>
+            <div class="cfg-desc">ID della chat dove inviare le notifiche. Recuperabile con <code>@userinfobot</code> o avviando una chat col bot e chiamando <code>/getUpdates</code>.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-TELEGRAM_CHAT_ID" class="cfg-input" type="text" placeholder="es. -1001234567890" autocomplete="off" />
+            </div>
+          </div>
+          <div class="cfg-save-row">
+            <button class="cfg-save-btn" onclick="saveSection('telegram')">💾 Salva Telegram</button>
+            <span id="fb-telegram" class="cfg-feedback empty">—</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Avanzate ───────────────────────────────────────────────── -->
+      <div class="cfg-section">
+        <div class="cfg-section-head">
+          <span class="cfg-section-icon">🛠</span>
+          <div>
+            <div class="cfg-section-title">Impostazioni Avanzate</div>
+            <div class="cfg-section-subtitle">Scheduler, percorsi e ambiente</div>
+          </div>
+        </div>
+        <div class="cfg-section-body">
+          <div class="cfg-field">
+            <label class="cfg-label">Cron Schedule</label>
+            <div class="cfg-desc">Espressione cron per l'esecuzione automatica. Il formato è: <code>min ora * * giorni</code> (0=Dom, 1=Lun…6=Sab). Fuso: Europe/Rome.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-CRON_SCHEDULE" class="cfg-input" type="text" placeholder="30 9 * * 1,3,5" autocomplete="off" />
+            </div>
+            <div style="margin-top:5px;display:flex;flex-wrap:wrap;gap:5px">
+              <span class="val-badge" style="cursor:pointer" onclick="document.getElementById('cfg-CRON_SCHEDULE').value='30 9 * * 1,3,5'">Lun/Mer/Ven 9:30</span>
+              <span class="val-badge" style="cursor:pointer" onclick="document.getElementById('cfg-CRON_SCHEDULE').value='0 10 * * 1-5'">Feriali 10:00</span>
+              <span class="val-badge" style="cursor:pointer" onclick="document.getElementById('cfg-CRON_SCHEDULE').value='0 9 * * *'">Ogni giorno 9:00</span>
+              <span class="val-badge" style="cursor:pointer" onclick="document.getElementById('cfg-CRON_SCHEDULE').value='0 */6 * * *'">Ogni 6h</span>
+            </div>
+          </div>
+          <div class="cfg-field">
+            <label class="cfg-label">Percorso Foto</label>
+            <div class="cfg-desc">Cartella dove si trovano le foto da affiancare al video HeyGen nel reel finale.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-PHOTOS_BASE_PATH" class="cfg-input" type="text" placeholder="./assets/photos" autocomplete="off" />
+            </div>
+          </div>
+          <div class="cfg-save-row">
+            <button class="cfg-save-btn" onclick="saveSection('advanced')">💾 Salva Impostazioni</button>
+            <span id="fb-advanced" class="cfg-feedback empty">—</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /cfg-grid -->
+  </div><!-- /tab-config -->
+
+</div><!-- /wrap -->
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+  let autoScroll = true;
+  let lineCount  = 0;
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  function escHtml(s) {
+    return String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;');
+  }
+
+  function parseLogLine(line) {
+    const m = line.match(/^\[([^\]]+)\] \[([A-Z]+)\] (.+)$/s);
+    if (!m) return `<span class="ll" style="color:var(--text2)">${escHtml(line)}</span>`;
+    const [, ts, lvl, msg] = m;
+    return `<span class="ll"><span class="lts">${ts} </span><span class="l${lvl}">[${lvl}]</span> <span class="lmsg-${lvl}">${escHtml(msg)}</span></span>`;
+  }
+
+  function appendLine(line) {
+    const viewer = document.getElementById('log-viewer');
+    const empty  = document.getElementById('log-empty');
+    if (empty) empty.remove();
+
+    const el = document.createElement('div');
+    el.innerHTML = parseLogLine(line);
+    viewer.appendChild(el.firstChild || el);
+    lineCount++;
+
+    // Keep last 600 lines
+    while (viewer.children.length > 600) viewer.removeChild(viewer.firstChild);
+
+    if (autoScroll) viewer.scrollTop = viewer.scrollHeight;
+  }
+
+  function clearLog() {
+    const viewer = document.getElementById('log-viewer');
+    viewer.innerHTML = '';
+    lineCount = 0;
+  }
+
+  // ── Apply state ────────────────────────────────────────────────────────────
+  function applyState(s) {
+    // Header status
+    const dot  = document.getElementById('status-dot');
+    const txt  = document.getElementById('status-text');
+    dot.className = 'dot ' + s.status;
+    const labels = { idle:'In attesa', running:'In esecuzione…', success:'Completato ✓', error:'Errore ✗' };
+    txt.textContent = labels[s.status] || s.status;
+
+    // Stats
+    const statMap = { idle:'⏸ Idle', running:'⚡ Running', success:'✅ Successo', error:'❌ Errore' };
+    setText('s-status', statMap[s.status] || s.status);
+    if (s.lastRun) {
+      const d = new Date(s.lastRun);
+      setText('s-lastrun',    d.toLocaleTimeString('it-IT'));
+      setText('s-lastresult', d.toLocaleDateString('it-IT', { weekday:'short', day:'2-digit', month:'short' }));
+    }
+    if (s.cron) setText('s-cron', s.cron);
+    if (s.env)  setText('s-env',  s.env === 'development' ? '🛠 Dev' : '🚀 Produzione');
+
+    // Run button
+    const btn   = document.getElementById('run-btn');
+    const icon  = document.getElementById('run-icon');
+    const label = document.getElementById('run-label');
+    if (s.status === 'running') {
+      btn.disabled = true;
+      icon.className = 'spin';
+      icon.textContent = '';
+      label.textContent = 'Pipeline in corso…';
+    } else {
+      btn.disabled = false;
+      icon.className = '';
+      icon.textContent = '▶';
+      label.textContent = 'Esegui Ora';
+    }
+
+    // Steps
+    if (s.steps) {
+      renderSteps(s.steps);
+      const done = s.steps.filter(x => x.status === 'done').length;
+      setText('steps-badge', s.steps.length ? `${done} / ${s.steps.length}` : '—');
+    }
+
+    // Keys
+    if (s.keys) {
+      setKey('k-heygen',    s.keys.heygen);
+      setKey('k-anthropic', s.keys.anthropic);
+      setKey('k-meta',      s.keys.meta, true);
+      setKey('k-topics',    s.keys.topics);
+      setKey('k-telegram',  s.keys.telegram, true);
+    }
+  }
+
+  function setText(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  }
+
+  function setKey(id, ok, optional = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (ok) {
+      el.textContent = '✓ Configurata';
+      el.className = 'tag tag-ok';
+      return;
+    }
+
+    if (optional) {
+      el.textContent = '○ Opzionale';
+      el.className = 'tag tag-wrn';
+      return;
+    }
+
+    el.textContent = '✗ Mancante';
+    el.className = 'tag tag-err';
+  }
+
+  // ── Steps renderer ─────────────────────────────────────────────────────────
+  const STEP_ICONS = { pending:'', running:'⟳', done:'✓', error:'✗', skipped:'—' };
+
+  function renderSteps(steps) {
+    const items = document.querySelectorAll('#steps-list .step');
+    items.forEach(item => {
+      const name   = item.dataset.step;
+      const step   = steps.find(s => s.name === name);
+      const icon   = item.querySelector('.step-icon');
+      const detail = item.querySelector('.step-detail');
+      const num    = icon.textContent.match(/\d+/)?.[0] || '';
+
+      if (!step) {
+        icon.className   = 'step-icon';
+        icon.textContent = num;
+        return;
+      }
+      icon.className   = 'step-icon ' + step.status;
+      icon.textContent = STEP_ICONS[step.status] || num;
+      if (step.detail) detail.textContent = step.detail;
+    });
+  }
+
+  // ── API calls ──────────────────────────────────────────────────────────────
+  async function loadInitial() {
+    try {
+      const [statusRes, logsRes] = await Promise.all([
+        fetch('/api/status'),
+        fetch('/api/logs'),
+      ]);
+      applyState(await statusRes.json());
+      const { lines } = await logsRes.json();
+      lines.forEach(appendLine);
+    } catch(e) { console.warn('Init error', e); }
+  }
+
+  async function triggerRun() {
+    try {
+      const res  = await fetch('/api/run', { method: 'POST' });
+      const data = await res.json();
+      if (data.error) alert(data.error);
+    } catch(e) { alert('Errore di connessione al server'); }
+  }
+
+  // ── SSE connection ─────────────────────────────────────────────────────────
+  function connectSSE() {
+    const connDot = document.getElementById('conn-dot');
+    const es      = new EventSource('/api/events');
+
+    es.addEventListener('state', e => applyState(JSON.parse(e.data)));
+
+    es.addEventListener('log', e => {
+      const { line } = JSON.parse(e.data);
+      if (line) appendLine(line);
+    });
+
+    es.onopen  = () => connDot.className = 'conn-dot live';
+    es.onerror = () => {
+      connDot.className = 'conn-dot';
+      es.close();
+      setTimeout(connectSSE, 3000);
+    };
+  }
+
+  // ── Autoscroll detection ───────────────────────────────────────────────────
+  document.getElementById('log-viewer').addEventListener('scroll', function () {
+    const atBottom = this.scrollHeight - this.scrollTop - this.clientHeight < 60;
+    autoScroll = atBottom;
+    const badge = document.getElementById('autoscroll-badge');
+    badge.classList.toggle('off', !autoScroll);
+  });
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+  loadInitial();
+  connectSSE();
+  loadTopics();
+
+  // ── Tab Switching ──────────────────────────────────────────────────────────
+  function switchTab(name, btn) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'topics') loadTopics();
+    if (name === 'config') loadConfigTab();
+  }
+
+  // ── Drag & Drop ────────────────────────────────────────────────────────────
+  function onDragOver(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.add('dragging');
+  }
+  function onDragLeave(e) {
+    document.getElementById('drop-zone').classList.remove('dragging');
+  }
+  function onDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-zone').classList.remove('dragging');
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelect(file);
+  }
+
+  // ── Upload XLSX ────────────────────────────────────────────────────────────
+  async function handleFileSelect(file) {
+    if (!file) return;
+    const allowed = ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                     'application/vnd.ms-excel'];
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['xlsx','xls'].includes(ext)) {
+      showFeedback('err', '✗ Formato non valido. Carica un file .xlsx o .xls');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showFeedback('err', '✗ File troppo grande (max 5 MB)');
+      return;
+    }
+    showFeedback('ok', '⏳ Caricamento in corso…');
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const res  = await fetch('/api/topics/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) { showFeedback('err', `✗ ${data.error}`); return; }
+      showFeedback('ok', `✓ ${data.count} topic importati con successo`);
+      renderTopics(data.topics);
+      // Reset input
+      document.getElementById('file-input').value = '';
+    } catch(e) {
+      showFeedback('err', '✗ Errore di connessione al server');
+    }
+  }
+
+  function showFeedback(type, msg) {
+    const el = document.getElementById('upload-feedback');
+    el.textContent = msg;
+    el.className   = 'upload-feedback ' + type;
+    el.style.display = '';
+  }
+
+  // ── Load topics from server ────────────────────────────────────────────────
+  async function loadTopics() {
+    try {
+      const res    = await fetch('/api/topics');
+      const topics = await res.json();
+      renderTopics(topics);
+    } catch(e) { console.warn('loadTopics error', e); }
+  }
+
+  // ── Render Topics Table ────────────────────────────────────────────────────
+  const PILASTRO_COLORS = {
+    tecnico:  'color:var(--blue)',
+    prodotto: 'color:var(--accent)',
+    servizio: 'color:var(--green)',
+    brand:    'color:var(--yellow)',
+  };
+  const STATUS_TAGS = {
+    pending: '<span class="tag tag-wrn">⏳ pending</span>',
+    done:    '<span class="tag tag-ok" >✓ done</span>',
+    skip:    '<span class="tag tag-err">— skip</span>',
+  };
+
+  function renderTopics(topics) {
+    const empty = document.getElementById('topics-empty');
+    const wrap  = document.getElementById('topics-table-wrap');
+    const stats = document.getElementById('topics-stats');
+    const tbody = document.getElementById('topics-tbody');
+    const badge = document.getElementById('topics-count-badge');
+
+    if (!topics || !topics.length) {
+      empty.style.display = '';
+      wrap.style.display  = 'none';
+      stats.style.display = 'none';
+      badge.textContent   = '—';
+      return;
+    }
+
+    empty.style.display = 'none';
+    wrap.style.display  = '';
+    stats.style.display = '';
+
+    // Counts
+    const total   = topics.length;
+    const pending = topics.filter(t => t.status === 'pending').length;
+    const done    = topics.filter(t => t.status === 'done').length;
+    const skip    = topics.filter(t => t.status === 'skip').length;
+    setText('ts-total',   total);
+    setText('ts-pending', pending);
+    setText('ts-done',    done);
+    setText('ts-skip',    skip);
+    badge.textContent = `${total} topic`;
+
+    // Table rows
+    tbody.innerHTML = topics.map(t => `
+      <tr id="tr-${t.id}">
+        <td class="td-id">${t.id}</td>
+        <td class="td-topic" title="${escHtml(t.topic)}">${escHtml(t.topic)}</td>
+        <td class="td-small" style="${PILASTRO_COLORS[t.pilastro]||''};font-weight:600">${escHtml(t.pilastro)}</td>
+        <td class="td-small">${t.photoId ? escHtml(t.photoId) : '<span style="color:var(--text3)">—</span>'}</td>
+        <td class="td-small" style="max-width:200px" title="${escHtml(t.parlato||'')}">
+          ${(t.parlato||'').trim()
+            ? `<span style="color:var(--accent)">✏</span> <span style="color:var(--text2)">${escHtml((t.parlato||'').trim().slice(0,55))}${(t.parlato||'').trim().length>55?'…':''}</span>`
+            : '<span style="color:var(--text3);font-size:10.5px">✦ Claude AI</span>'}
+        </td>
+        <td>${STATUS_TAGS[t.status] || escHtml(t.status)}</td>
+        <td class="td-actions">
+          ${t.status !== 'done' ? `<button class="act-btn done-btn" onclick="setTopicStatus(${t.id},'done')">✓ Done</button>` : ''}
+          ${t.status !== 'skip' ? `<button class="act-btn skip-btn" onclick="setTopicStatus(${t.id},'skip')">— Skip</button>` : ''}
+          ${t.status !== 'pending' ? `<button class="act-btn" onclick="setTopicStatus(${t.id},'pending')">↺ Reset</button>` : ''}
+          <button class="act-btn del-btn" onclick="deleteTopic(${t.id})">🗑</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // ── Topic Actions ──────────────────────────────────────────────────────────
+  async function setTopicStatus(id, status) {
+    try {
+      const res    = await fetch(`/api/topics/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      if (res.ok) loadTopics();
+    } catch(e) { console.warn(e); }
+  }
+
+  async function deleteTopic(id) {
+    if (!confirm('Eliminare questo topic?')) return;
+    try {
+      await fetch(`/api/topics/${id}`, { method: 'DELETE' });
+      loadTopics();
+    } catch(e) { console.warn(e); }
+  }
+
+  // ── Configurazioni ─────────────────────────────────────────────────────────
+  let _heygenAvatars = [];
+  let _heygenVoices  = [];
+
+  function selectMotionEngine(v) {
+    document.getElementById('cfg-HEYGEN_MOTION_ENGINE').value = v;
+    document.getElementById('me-pill-3').classList.toggle('selected', v === '3');
+    document.getElementById('me-pill-4').classList.toggle('selected', v === '4');
+  }
+
+  async function loadConfigTab() {
+    try {
+      const res  = await fetch('/api/config');
+      const data = await res.json();
+      // Popola i campi (mostra mascherata se presente)
+      const fields = [
+        'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID',
+        'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
+        'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
+        'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
+        'CRON_SCHEDULE','PHOTOS_BASE_PATH',
+      ];
+      for (const key of fields) {
+        const el = document.getElementById('cfg-' + key);
+        if (!el) continue;
+        if (el.tagName === 'SELECT') {
+          el.value = data[key] || el.options[0].value;
+        } else {
+          el.value = data[key] || '';
+        }
+      }
+      // Motion Engine pills
+      selectMotionEngine(data.HEYGEN_MOTION_ENGINE || '3');
+      // Aggiorna badge
+      updateCfgBadge('badge-heygen',    data._has?.heygenKey);
+      updateCfgBadge('badge-anthropic', data._has?.anthropicKey);
+      updateCfgBadge('badge-meta',      data._has?.metaToken,    true);
+      updateCfgBadge('badge-telegram',  data._has?.telegramToken, true);
+
+      // Abilita browse buttons se la chiave è presente
+      const heygenOk = data._has?.heygenKey;
+      document.getElementById('btn-browse-avatars').disabled = !heygenOk;
+      document.getElementById('btn-browse-voices').disabled  = !heygenOk;
+      document.getElementById('btn-load-heygen').disabled    = false;
+    } catch(e) { console.warn('loadConfigTab error', e); }
+  }
+
+  function updateCfgBadge(id, ok, optional = false) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (ok) { el.textContent = '✓ Configurata'; el.className = 'cfg-section-badge tag tag-ok'; }
+    else if (optional) { el.textContent = '○ Opzionale'; el.className = 'cfg-section-badge tag tag-wrn'; }
+    else { el.textContent = '✗ Mancante'; el.className = 'cfg-section-badge tag tag-err'; }
+  }
+
+  function toggleEye(inputId, btn) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    if (el.type === 'password') { el.type = 'text';  btn.textContent = '🙈'; }
+    else                        { el.type = 'password'; btn.textContent = '👁'; }
+  }
+
+  const SECTION_KEYS = {
+    heygen:   ['HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE'],
+    anthropic:['ANTHROPIC_API_KEY','ANTHROPIC_MODEL'],
+    meta:     ['META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID'],
+    telegram: ['TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID'],
+    advanced: ['CRON_SCHEDULE','PHOTOS_BASE_PATH'],
+  };
+
+  async function saveSection(section) {
+    const fb  = document.getElementById('fb-' + section);
+    const btn = fb.previousElementSibling;
+    const body = {};
+    for (const key of (SECTION_KEYS[section] || [])) {
+      const el = document.getElementById('cfg-' + key);
+      if (el) body[key] = el.tagName === 'SELECT' ? el.value : el.value.trim();
+    }
+    btn.disabled = true;
+    try {
+      const res  = await fetch('/api/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore salvataggio');
+      fb.textContent = `✓ ${data.saved} campo/i salvati`;
+      fb.className   = 'cfg-feedback ok';
+      // Ricarica config per aggiornare badge e mascheratura
+      await loadConfigTab();
+      // Se salvo la heygen key, abilita subito i bottoni
+      if (section === 'heygen') {
+        document.getElementById('btn-browse-avatars').disabled = false;
+        document.getElementById('btn-browse-voices').disabled  = false;
+      }
+    } catch(e) {
+      fb.textContent = `✗ ${e.message}`;
+      fb.className   = 'cfg-feedback err';
+    } finally {
+      btn.disabled = false;
+      setTimeout(() => { fb.textContent = '—'; fb.className = 'cfg-feedback empty'; }, 5000);
+    }
+  }
+
+  // ── HeyGen Browser ─────────────────────────────────────────────────────────
+  async function loadHeygenData() {
+    const btn = document.getElementById('btn-load-heygen');
+    btn.disabled = true; btn.textContent = '⟳ Carico…';
+
+    // Prima salva la chiave corrente se è stata modificata
+    const keyEl = document.getElementById('cfg-HEYGEN_API_KEY');
+    if (keyEl.value && !keyEl.value.includes('••••')) {
+      await fetch('/api/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ HEYGEN_API_KEY: keyEl.value }),
+      });
+    }
+
+    const [avRes, voRes] = await Promise.allSettled([
+      fetch('/api/heygen/avatars'),
+      fetch('/api/heygen/voices'),
+    ]);
+
+    // Avatars
+    if (avRes.status === 'fulfilled' && avRes.value.ok) {
+      const data = await avRes.value.json();
+      _heygenAvatars = data.avatars || [];
+      document.getElementById('avatars-count-label').textContent = `${_heygenAvatars.length} avatar disponibili`;
+      document.getElementById('btn-browse-avatars').disabled = false;
+      renderAvatarBrowser('');
+    } else {
+      const errData = avRes.status === 'fulfilled' ? await avRes.value.json() : {};
+      document.getElementById('avatars-list').innerHTML =
+        `<div class="hbr-error">✗ Avatars: ${escHtml(errData.error || 'Errore di connessione')}</div>`;
+    }
+
+    // Voices
+    if (voRes.status === 'fulfilled' && voRes.value.ok) {
+      const data = await voRes.value.json();
+      _heygenVoices = data.voices || [];
+      document.getElementById('voices-count-label').textContent = `${_heygenVoices.length} voci disponibili`;
+      document.getElementById('btn-browse-voices').disabled = false;
+      renderVoiceBrowser('');
+    } else {
+      const errData = voRes.status === 'fulfilled' ? await voRes.value.json() : {};
+      document.getElementById('voices-list').innerHTML =
+        `<div class="hbr-error">✗ Voci: ${escHtml(errData.error || 'Errore di connessione')}</div>`;
+    }
+
+    btn.textContent = '✓ Caricato';
+    await loadConfigTab();
+    setTimeout(() => { btn.disabled = false; btn.textContent = '⟳ Carica'; }, 2500);
+  }
+
+  function toggleBrowser(type) {
+    const el = document.getElementById('browser-' + type);
+    const isOpening = !el.classList.contains('open');
+    el.classList.toggle('open');
+    // Se si apre e non ci sono ancora dati, carica automaticamente
+    if (isOpening) {
+      if (type === 'avatars' && !_heygenAvatars.length) loadHeygenData();
+      if (type === 'voices'  && !_heygenVoices.length)  loadHeygenData();
+    }
+  }
+
+  function filterBrowser(type) {
+    const q = document.getElementById(type + '-search').value.toLowerCase();
+    if (type === 'avatars') renderAvatarBrowser(q);
+    else                    renderVoiceBrowser(q);
+  }
+
+  function renderAvatarBrowser(q) {
+    const list = document.getElementById('avatars-list');
+    const currentId = document.getElementById('cfg-HEYGEN_AVATAR_ID').value.trim();
+    const filtered  = q
+      ? _heygenAvatars.filter(a =>
+          (a.avatar_name||'').toLowerCase().includes(q) ||
+          (a.avatar_id  ||'').toLowerCase().includes(q))
+      : _heygenAvatars;
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="hbr-loading">Nessun avatar trovato</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(a => `
+      <div class="hbr-card ${a.avatar_id === currentId ? 'selected' : ''}"
+           onclick="selectAvatar('${escHtml(a.avatar_id)}')"
+           title="${escHtml(a.avatar_id)}">
+        ${a.preview_image_url
+          ? `<img class="hbr-thumb" src="${escHtml(a.preview_image_url)}" alt="" loading="lazy" onerror="this.outerHTML='<div class=hbr-thumb>👤</div>'" />`
+          : '<div class="hbr-thumb">👤</div>'}
+        <div class="hbr-name">${escHtml(a.avatar_name || a.avatar_id)}</div>
+        <div class="hbr-id">${escHtml(a.avatar_id)}</div>
+        ${a.gender ? `<div class="hbr-meta">${escHtml(a.gender)}${a.premium ? ' · ⭐ Premium' : ''}</div>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function selectAvatar(id) {
+    document.getElementById('cfg-HEYGEN_AVATAR_ID').value = id;
+    renderAvatarBrowser(document.getElementById('avatars-search').value.toLowerCase());
+  }
+
+  function renderVoiceBrowser(q) {
+    const list = document.getElementById('voices-list');
+    const currentId = document.getElementById('cfg-HEYGEN_VOICE_ID').value.trim();
+    const filtered  = q
+      ? _heygenVoices.filter(v =>
+          (v.display_name||'').toLowerCase().includes(q) ||
+          (v.language    ||'').toLowerCase().includes(q) ||
+          (v.voice_id    ||'').toLowerCase().includes(q))
+      : _heygenVoices;
+
+    if (!filtered.length) {
+      list.innerHTML = '<div class="hbr-loading">Nessuna voce trovata</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(v => `
+      <div class="hbr-voice-row ${v.voice_id === currentId ? 'selected' : ''}"
+           onclick="selectVoice('${escHtml(v.voice_id)}')"
+           title="${escHtml(v.voice_id)}">
+        <div style="flex:1;min-width:0">
+          <div class="hbr-voice-name">${escHtml(v.display_name || v.voice_id)}</div>
+          <div class="hbr-voice-id">${escHtml(v.voice_id)}</div>
+        </div>
+        <div style="text-align:right;flex-shrink:0">
+          ${v.language ? `<div class="hbr-voice-lang">${escHtml(v.language)}</div>` : ''}
+          ${v.gender   ? `<div class="hbr-voice-lang">${escHtml(v.gender)}</div>` : ''}
+        </div>
+        ${v.preview_audio ? `<button onclick="event.stopPropagation();playVoicePreview('${escHtml(v.preview_audio)}')" style="background:rgba(240,160,48,.15);border:1px solid rgba(240,160,48,.3);border-radius:6px;color:var(--accent);padding:4px 8px;cursor:pointer;font-size:11px;flex-shrink:0">▶</button>` : ''}
+      </div>
+    `).join('');
+  }
+
+  function selectVoice(id) {
+    document.getElementById('cfg-HEYGEN_VOICE_ID').value = id;
+    renderVoiceBrowser(document.getElementById('voices-search').value.toLowerCase());
+  }
+
+  let _audioPlayer = null;
+  function playVoicePreview(url) {
+    if (_audioPlayer) { _audioPlayer.pause(); _audioPlayer = null; }
+    _audioPlayer = new Audio(url);
+    _audioPlayer.play().catch(() => {});
+  }
+
+</script>
+</body>
+</html>
