@@ -1144,7 +1144,7 @@
             <div class="format-col">
               <div class="format-col-name">photoId</div>
               <div class="format-col-desc">Nome del file foto nella cartella <code>assets/photos/</code>. Opzionale.</div>
-              <div class="format-col-example">es. &ldquo;faggio_premium.jpg&rdquo;</div>
+              <div class="format-col-example">es. &ldquo;ai_intro_01.jpg&rdquo;, &ldquo;sport_evento.jpg&rdquo;</div>
             </div>
 
             <div class="format-col">
@@ -1156,7 +1156,7 @@
             <div class="format-col" style="border-color:rgba(26,111,223,.35);background:rgba(26,111,223,.04)">
               <div class="format-col-name">parlato &nbsp;<span style="font-size:10px;font-weight:400;color:var(--text2);font-family:sans-serif">— opzionale, bypassa Claude</span></div>
               <div class="format-col-desc">Testo parlato completo già scritto da te. Se compilato, <strong style="color:var(--accent)">Claude non viene chiamato</strong> e questo testo viene passato direttamente a HeyGen. Se vuoto, Claude genera il testo automaticamente.</div>
-              <div class="format-col-example">es. &ldquo;La legna umida crea variazioni di temperatura nel forno. Ogni nostro lotto viene testato con igrometro&hellip; Se vuoi provare la nostra legna, contattaci.&rdquo;</div>
+              <div class="format-col-example">es. &ldquo;Nel 2025 il 40% dei lavori è già parzialmente automatizzato. Ma l\'AI non sostituisce le persone: potenzia chi la usa. Inizia oggi, anche con 10 minuti al giorno.&rdquo;</div>
               <div style="margin-top:6px;font-size:10.5px;color:var(--text3)">⏱ 80&ndash;120 parole &middot; 30&ndash;45 secondi &middot; termina sempre con la CTA fissa</div>
             </div>
 
@@ -1718,7 +1718,7 @@
     {
       id: 'qty',
       text: 'Quanti video vuoi creare?',
-      hint: 'Indica il numero di video. Ogni video avrà un topic dedicato.',
+      hint: 'Indica il numero di video da generare. Ogni video avrà un topic dedicato.',
       type: 'number',
       placeholder: 'Es: 5',
       min: 1, max: 30,
@@ -1726,54 +1726,64 @@
     {
       id: 'subject',
       text: 'Qual è l\'argomento principale?',
-      hint: 'Descrivi in modo libero l\'argomento o il tema dei video.',
+      hint: 'Qualsiasi argomento: sport, politica, AI, scienza, cucina, finanza, medicina, moda, religione, tecnologia...',
       type: 'text',
-      placeholder: 'Es: legna da ardere per pizzerie napoletane',
+      placeholder: 'Es: intelligenza artificiale nel lavoro quotidiano',
     },
     {
       id: 'pilastro',
-      text: 'Qual è il pilastro di contenuto?',
-      hint: 'Scegli il tipo di contenuto che vuoi comunicare.',
+      text: 'Che tipo di contenuto vuoi creare?',
+      hint: 'Scegli la categoria principale. Puoi selezionare "Misto" per variare.',
       type: 'chips',
       options: [
-        { value: 'tecnico',  label: '🔧 Tecnico',  hint: 'Informazioni su legna, forni, combustione' },
-        { value: 'prodotto', label: '📦 Prodotto',  hint: 'Presentazione prodotti specifici' },
-        { value: 'servizio', label: '🚚 Servizio',  hint: 'Logistica, consegna, assistenza' },
-        { value: 'brand',    label: '🏛️ Brand',    hint: 'Storia, valori, team' },
-        { value: 'misto',    label: '🎨 Misto',     hint: 'Varia tra i pilastri' },
+        { value: 'educativo',     label: '📚 Educativo',     hint: 'Insegna o spiega qualcosa' },
+        { value: 'opinione',      label: '💬 Opinione',      hint: 'Punto di vista, analisi' },
+        { value: 'tutorial',      label: '🎯 Tutorial',      hint: 'Come fare, step by step' },
+        { value: 'ispirazione',   label: '✨ Ispirazione',   hint: 'Motiva, ispira, emoziona' },
+        { value: 'notizia',       label: '📰 Notizia',       hint: 'Aggiornamenti, trend, news' },
+        { value: 'misto',         label: '🎨 Misto',         hint: 'Varia tra i tipi' },
       ],
     },
     {
       id: 'target',
       text: 'Chi è il tuo pubblico target?',
-      hint: 'A chi sono rivolti questi video?',
+      hint: 'Descrivi a chi sono rivolti questi video.',
+      type: 'text',
+      placeholder: 'Es: giovani professionisti 25-35 anni, appassionati di tecnologia, genitori...',
+    },
+    {
+      id: 'formato',
+      text: 'Su quale piattaforma pubblicherai?',
+      hint: 'La piattaforma influenza tono, durata e stile del contenuto.',
       type: 'chips',
       options: [
-        { value: 'pizzaioli',    label: '🍕 Pizzaioli professionali' },
-        { value: 'ristoratori',  label: '🍽️ Ristoratori' },
-        { value: 'privati',      label: '🏠 Privati / Appassionati' },
-        { value: 'tutti',        label: '👥 Tutti' },
+        { value: 'instagram_reel', label: '📸 Instagram Reel' },
+        { value: 'tiktok',         label: '🎵 TikTok' },
+        { value: 'youtube_short',  label: '▶️ YouTube Short' },
+        { value: 'linkedin',       label: '💼 LinkedIn' },
+        { value: 'multipiattaforma', label: '🌐 Multipiattaforma' },
       ],
     },
     {
       id: 'stile',
       text: 'Che stile comunicativo vuoi?',
-      hint: 'Il tono della narrazione nel video.',
+      hint: 'Il tono e il registro della narrazione.',
       type: 'chips',
       options: [
-        { value: 'educativo',     label: '📚 Educativo',     hint: 'Insegna qualcosa' },
-        { value: 'promozionale',  label: '📣 Promozionale',  hint: 'Metti in risalto i vantaggi' },
-        { value: 'storytelling',  label: '📖 Storytelling',  hint: 'Racconta una storia' },
-        { value: 'tecnico',       label: '⚙️ Tecnico',       hint: 'Preciso e dettagliato' },
-        { value: 'diretto',       label: '⚡ Diretto',       hint: 'Breve e al punto' },
+        { value: 'divulgativo',   label: '🔬 Divulgativo',   hint: 'Chiaro e accessibile a tutti' },
+        { value: 'autorevole',    label: '🏆 Autorevole',    hint: 'Esperto, preciso, affidabile' },
+        { value: 'storytelling',  label: '📖 Storytelling',  hint: 'Narrativo, coinvolgente' },
+        { value: 'provocatorio',  label: '🔥 Provocatorio',  hint: 'Sorprendente, contro-corrente' },
+        { value: 'diretto',       label: '⚡ Diretto',       hint: 'Breve, concreto, al punto' },
+        { value: 'ironico',       label: '😄 Ironico',       hint: 'Leggero, umoristico' },
       ],
     },
     {
-      id: 'prodotto',
-      text: 'C\'è un prodotto specifico da evidenziare?',
-      hint: 'Opzionale. Es: Faggio Premium, Quercia Lenta, Misto Toscano.',
+      id: 'elemento',
+      text: 'C\'è un elemento specifico da mettere in risalto?',
+      hint: 'Opzionale. Un prodotto, un concetto, una persona, un evento, un dato...',
       type: 'text',
-      placeholder: 'Es: Faggio Premium stagionato 18 mesi (lascia vuoto se non applicabile)',
+      placeholder: 'Es: ChatGPT-5, le elezioni del 2026, il metodo Wim Hof (lascia vuoto se non applicabile)',
       required: false,
     },
     {
@@ -1781,35 +1791,36 @@
       text: 'Qual è il messaggio chiave che vuoi comunicare?',
       hint: 'La cosa più importante che deve restare in testa a chi guarda.',
       type: 'textarea',
-      placeholder: 'Es: La nostra legna è certificata, secca e consegnata in 24h. Qualità garantita per pizzerie professionali.',
+      placeholder: 'Es: L\'AI non sostituirà le persone, ma chi non la usa sarà sostituito da chi la usa.',
     },
     {
       id: 'parlato',
       text: 'Hai già testi o frasi da usare come base?',
-      hint: 'Opzionale. Se hai script già scritti, incollali qui. Claude li userà come punto di partenza.',
+      hint: 'Opzionale. Incolla script, appunti o frasi chiave. Verranno usati come punto di partenza.',
       type: 'textarea',
-      placeholder: 'Es: "La legna umida crea variazioni di temperatura nel forno..." (lascia vuoto per generazione automatica)',
+      placeholder: 'Es: "Nel 2025 il 40% dei lavori amministrativi era già parzialmente automatizzato..." (lascia vuoto per generazione automatica)',
       required: false,
     },
     {
       id: 'cta',
-      text: 'Che azione vuoi far fare al cliente?',
+      text: 'Che azione vuoi far fare a chi guarda?',
       hint: 'La call-to-action di chiusura del video.',
       type: 'chips',
       options: [
-        { value: 'contattaci',  label: '📞 Contattaci' },
-        { value: 'ordina',      label: '🛒 Ordina ora' },
-        { value: 'visita',      label: '🌐 Visita il sito' },
-        { value: 'scopri',      label: '🔍 Scopri di più' },
-        { value: 'nessuna',     label: '🚫 Nessuna CTA' },
+        { value: 'commenta',      label: '💬 Commenta' },
+        { value: 'condividi',     label: '🔄 Condividi' },
+        { value: 'seguimi',       label: '➕ Seguimi' },
+        { value: 'link_bio',      label: '🔗 Link in bio' },
+        { value: 'riflessione',   label: '🧠 Lascia riflettere' },
+        { value: 'nessuna',       label: '🚫 Nessuna CTA' },
       ],
     },
     {
       id: 'note',
       text: 'Note aggiuntive o istruzioni speciali?',
-      hint: 'Opzionale. Qualsiasi cosa voglia che Claude sappia per personalizzare i contenuti.',
+      hint: 'Opzionale. Qualsiasi indicazione per personalizzare ulteriormente i contenuti.',
       type: 'textarea',
-      placeholder: 'Es: Evita termini troppo tecnici. Menziona sempre la consegna puntuale. Stagione: estate 2026.',
+      placeholder: 'Es: Evita termini troppo tecnici. Usa dati e statistiche recenti. Tono ottimista. Lunghezza max 45 secondi.',
       required: false,
     },
   ];
@@ -1996,7 +2007,7 @@
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url;
-    a.download = `2c-legnami-topics-${Date.now()}.xlsx`;
+    a.download = `topics-wizard-${Date.now()}.xlsx`;
     a.click(); URL.revokeObjectURL(url);
   }
 

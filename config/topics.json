@@ -3,99 +3,45 @@
     "id": 1,
     "topic": "Argomento del video Instagram. Scrivi in italiano, chiaro e conciso.\nes. \"essiccazione naturale vs forno\"",
     "pilastro": "categoria del contenuto. valori accettati:\ntecnico  prodotto  servizio  brand",
-    "photoId": "Nome del file foto nella cartella assets/photos/. Opzionale.\nes. \"faggio_premium.jpg\"",
+    "photoId": "Nome del file foto nella cartella assets/photos/. Opzionale.\nes. \"ai_intro_01.jpg\"",
     "parlato": "Testo parlato completo. Se compilato, bypassa Claude e passa direttamente a HeyGen.\n80–120 parole · 30–45 sec · termina con CTA fissa",
     "note": "Note libere per uso interno. Non vengono usate dalla pipeline.\nes. \"Da pubblicare in alta stagione\"",
     "status": "done"
   },
   {
     "id": 2,
-    "topic": "essiccazione naturale vs forno",
-    "pilastro": "tecnico",
-    "photoId": "essiccazione.jpg",
-    "parlato": "Sai qual è la differenza tra legna essiccata naturalmente e legna essiccata in forno? La legna naturale impiega mesi, stagionando lentamente all'aria aperta. Quella da forno viene asciugata in tempi brevi ad alta temperatura. Il risultato? Entrambe possono essere di qualità, ma la stagionatura naturale dona una combustione più dolce e costante, perfetta per il forno della pizzeria. Noi di 2C Legnami selezioniamo solo legna perfettamente stagionata, testata prima della consegna. Vuoi provare la differenza nella tua pizzeria? Contattaci su WhatsApp, trovi il numero in bio.",
-    "note": "Spiega la differenza tra i due metodi",
+    "topic": "come l'intelligenza artificiale sta cambiando il lavoro nel 2025",
+    "pilastro": "educativo",
+    "photoId": "ai_lavoro_01.jpg",
+    "parlato": "Nel 2025 quasi la metà dei compiti amministrativi può essere automatizzata. Non significa perdere il lavoro — significa liberare tempo per ciò che conta davvero: creatività, relazioni, decisioni strategiche. Chi ha già integrato l'AI nella propria routine risparmia in media due ore al giorno. Due ore che puoi dedicare a quello che ti appassiona davvero. Inizia con un tool, un task, dieci minuti. Il futuro non aspetta.",
+    "note": "Tono ottimista, dati concreti",
     "status": "done"
   },
   {
     "id": 3,
-    "topic": "come riconoscere la legna di qualità",
-    "pilastro": "tecnico",
-    "photoId": "qualita_legna.jpg",
-    "parlato": "Come fai a capire se la legna che stai usando è davvero di qualità? Prima cosa: il peso. La legna stagionata è più leggera di quella umida. Seconda: il suono. Batti due pezzi insieme — se fa un suono secco e netto, è pronta. Terza: il colore. Le venature devono essere uniformi, senza muffe né macchie scure. La legna scadente brucia male, produce fumo denso e altera il sapore della pizza. Noi di 2C Legnami consegniamo solo legna che passa tutti questi controlli. Contattaci, il primo ordine è a prova di qualità.",
-    "note": "Utile per pizzaioli alle prime armi",
-    "status": "done"
+    "topic": "3 errori comuni quando si parla di sostenibilità",
+    "pilastro": "opinione",
+    "photoId": "sostenibilita_03.jpg",
+    "parlato": "",
+    "note": "Angolazione critica e costruttiva",
+    "status": "pending"
   },
   {
     "id": 4,
-    "topic": "quercia vs faggio per pizza napoletana",
-    "pilastro": "prodotto",
-    "photoId": "quercia_faggio.jpg",
-    "parlato": "Quercia o faggio? È una delle domande più comuni tra i pizzaioli. Il faggio brucia con una fiamma alta e vivace, ideale per raggiungere temperature elevate in poco tempo. La quercia invece garantisce braci durature e un calore più stabile nel tempo. Per la pizza napoletana verace, molti maestri pizzaioli preferiscono il faggio proprio per la sua rapidità di accensione e la fiamma pulita. Noi di 2C Legnami forniamo entrambe le essenze, selezionate e stagionate. Dimmi che pizza fai e ti suggerisco la legna giusta. Scrivici in bio.",
-    "note": "Confronto tra le due essenze principali",
-    "status": "done"
+    "topic": "come usare ChatGPT per risparmiare 2 ore al giorno",
+    "pilastro": "tutorial",
+    "photoId": "chatgpt_04.jpg",
+    "parlato": "",
+    "note": "Step by step pratico",
+    "status": "pending"
   },
   {
     "id": 5,
-    "topic": "umidità della legna e temperatura forno",
-    "pilastro": "tecnico",
+    "topic": "il futuro dell'istruzione: imparare con l'AI",
+    "pilastro": "notizia",
     "photoId": "",
-    "parlato": "L'umidità della legna è il nemico silenzioso di ogni pizzaiolo. Legna troppo umida non permette al forno di raggiungere le temperature giuste — parliamo di 450, 500 gradi per una napoletana doc. Produce fumo pesante, consuma più legna e il risultato nel piatto si sente. Il tasso di umidità ideale è sotto il 20%. Noi di 2C Legnami utilizziamo l'igrometro su ogni lotto prima della consegna. Ogni bancale che esce dal nostro magazzino è certificato asciutto e pronto all'uso. Vuoi lavorare senza sorprese? Contattaci su WhatsApp.",
-    "note": "Collegato al nostro controllo con igrometro",
-    "status": "done"
-  },
-  {
-    "id": 6,
-    "topic": "perché la legna conta quanto la farina",
-    "pilastro": "brand",
-    "photoId": "forno_legna.jpg",
-    "parlato": "Si parla tanto di farina, di impasto, di lievitazione. Ma c'è un ingrediente di cui quasi nessuno parla: la legna. Eppure è dentro ogni pizza che esce dal forno. I fumi di combustione entrano in contatto diretto con l'alimento — e la qualità della legna si sente nel sapore, nell'aroma, nella cornicione. Una legna scadente lascia residui, altera il gusto, può essere persino dannosa. Noi di 2C Legnami siamo il fornitore che i pizzaioli seri scelgono quando vogliono controllare ogni dettaglio del loro prodotto. Scrivici, parliamo della tua pizzeria.",
-    "note": "Angolo emozionale — storytelling",
-    "status": "done"
-  },
-  {
-    "id": 7,
-    "topic": "3 generazioni di passione per il legno",
-    "pilastro": "brand",
-    "photoId": "famiglia_corcione.jpg",
-    "parlato": "Questa storia inizia con mio nonno. Ebanista, artigiano del legno, uomo che sapeva riconoscere un'essenza di pregio a occhi chiusi. Mio padre ha portato quella conoscenza nel mondo della legna da ardere. Io, Ciro, l'ho trasformata in un servizio dedicato alle pizzerie di tutta la Campania. Tre generazioni, una sola certezza: il legno non mente. Se è buono, si vede, si sente, si brucia bene. 2C Legnami non vende solo legna — vende l'esperienza di chi il legno lo conosce davvero da decenni. Contattaci, siamo ad Arzano.",
-    "note": "Slide storia aziendale — alta stagione",
-    "status": "done"
-  },
-  {
-    "id": 8,
-    "topic": "pezzatura su misura per il tuo forno",
-    "pilastro": "servizio",
-    "photoId": "pezzatura.jpg",
-    "parlato": "Non tutti i forni sono uguali. Un forno napoletano tradizionale ha bocca e camera diverse da un forno a tunnel o da un forno domestico. Per questo la pezzatura della legna non può essere standard. Pezzi troppo lunghi non entrano bene, troppo corti bruciano in fretta. Noi di 2C Legnami tagliamo la legna sulla misura del tuo forno. Ti basta dirci il modello o le dimensioni e prepariamo il bancale su misura. Un dettaglio piccolo che fa una differenza enorme nella gestione del fuoco. Scrivici su WhatsApp, trovi il contatto in bio.",
-    "note": "",
-    "status": "done"
-  },
-  {
-    "id": 9,
-    "topic": "consegna diretta in pizzeria ad Arzano",
-    "pilastro": "servizio",
-    "photoId": "",
-    "parlato": "Immagina di non dover più pensare alla legna. Niente viaggi al magazzino, niente rimorchi, niente sorprese sull'ultimo lotto. Con 2C Legnami la legna arriva direttamente nella tua pizzeria, quando ne hai bisogno, nella quantità che vuoi. Serviamo le pizzerie di tutta la Campania con consegne puntuali e concordate. Siamo ad Arzano, nel cuore del napoletano, e conosciamo bene il territorio e le esigenze di chi lavora ogni giorno con il forno a legna. Hai una pizzeria? Parliamo di come possiamo servirti al meglio. Contattaci ora.",
-    "note": "Geo-targeting Campania",
-    "status": "done"
-  },
-  {
-    "id": 10,
-    "topic": "legna certificata e sicura per alimenti",
-    "pilastro": "prodotto",
-    "photoId": "certificazione.jpg",
-    "parlato": "Lo sapevi che non tutta la legna è idonea per uso alimentare? La normativa è chiara: la legna che brucia in un forno a contatto con gli alimenti deve essere certificata, tracciabile, priva di agenti chimici e trattamenti. Usare legna non certificata espone la tua pizzeria a sanzioni che vanno da mille a seimila euro — a carico tuo, non del fornitore. Noi di 2C Legnami forniamo legna con documentazione completa, filiera tracciata e conforme alle normative igienico-sanitarie vigenti. Proteggi la tua pizzeria e i tuoi clienti. Contattaci per saperne di più.",
-    "note": "Menzione normativa HACCP/alimentare",
-    "status": "done"
-  },
-  {
-    "id": 11,
-    "topic": "il segreto della pizza perfetta è il fuoco",
-    "pilastro": "brand",
-    "photoId": "fiamma.jpg",
-    "parlato": "C'è un momento magico nella pizzeria. Quando il forno è in temperatura, le fiamme danzano sul cielo della volta e l'aria profuma di legno caldo. In quel momento, prima ancora che l'impasto tocchi il piano di cottura, la pizza sta già prendendo forma. Perché il fuoco non è solo calore — è sapore, è aroma, è tradizione. Noi di 2C Legnami esistiamo per garantire che quel fuoco sia sempre perfetto. Legna selezionata, stagionata, consegnata puntuale. Il segreto della tua pizza migliore inizia da qui. Contattaci oggi — trovi il numero in bio.",
-    "note": "CTA forte — ottimo come primo reel di lancio",
-    "status": "done"
+    "parlato": "",
+    "note": "Trend education tech 2025",
+    "status": "pending"
   }
 ]

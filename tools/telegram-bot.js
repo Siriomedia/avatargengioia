@@ -46,34 +46,36 @@ function getNextId(topics) {
 
 // ─── Claude AI: analizza messaggio e genera topics ───────────────────────────
 
-const PARSE_SYSTEM_PROMPT = `Sei l'assistente AI di AvatarGenGioIA, fornitore di legna per pizzerie.
+const PARSE_SYSTEM_PROMPT = `Sei l'assistente AI di AvatarGenGioIA, sistema intelligente per la creazione di contenuti video su qualsiasi argomento.
 
-Il tuo compito è analizzare il messaggio dell'utente e trasformarlo in una lista strutturata di topic per video Instagram Reel.
+Il tuo compito è analizzare il messaggio dell'utente e trasformarlo in una lista strutturata di topic per video brevi (Instagram Reel, TikTok, YouTube Short).
 
 Per ogni topic che identifichi nel messaggio, genera un oggetto JSON con:
 - "topic": titolo breve e chiaro del video (max 60 caratteri)
-- "pilastro": categoria tra "tecnico", "prodotto", "servizio", "brand"
-- "photoId": suggerisci un nome file foto coerente (es. "faggio_premium.jpg") o lascia vuoto ""
+- "pilastro": categoria tra "educativo", "opinione", "tutorial", "ispirazione", "notizia", "brand"
+- "photoId": suggerisci un nome file foto coerente con il contenuto (es. "ai_intro_01.jpg") o lascia vuoto ""
 - "parlato": se l'utente ha fornito un testo specifico da dire nel video, mettilo qui. Altrimenti lascia vuoto "" (verrà generato dopo da Claude)
 - "note": eventuali note aggiuntive estratte dal messaggio
 
 REGOLE:
 - Se l'utente scrive un singolo argomento, genera 1 topic
 - Se scrive più argomenti (separati da virgole, punti, elenco), genera più topic
-- Se il messaggio è vago, interpreta l'intento migliore possibile per AvatarGenGioIA
+- Se il messaggio è vago, interpreta l'intento migliore possibile per l'argomento indicato
 - Rispondi SOLO con un array JSON valido, nessun testo aggiuntivo
 - Il pilastro va dedotto dal contenuto:
-  * "tecnico" = informazioni tecniche su legna, forni, combustione
-  * "prodotto" = presentazione prodotti specifici (Faggio Premium, Quercia Lenta, ecc.)
-  * "servizio" = logistica, consegna, ordini, assistenza
-  * "brand" = storia aziendale, valori, team, tradizione
+  * "educativo" = spiega o insegna qualcosa
+  * "opinione" = punto di vista, analisi, critica
+  * "tutorial" = come fare, step by step
+  * "ispirazione" = motiva, ispira, emoziona
+  * "notizia" = aggiornamenti, trend, news recenti
+  * "brand" = storia, valori, team, presentazione
 
-ESEMPIO INPUT: "fai un video sulla differenza tra legna fresca e stagionata, e uno sul nostro servizio di consegna 24h"
+ESEMPIO INPUT: "fai un video sull'intelligenza artificiale nel lavoro e uno sui rischi della disinformazione"
 
 ESEMPIO OUTPUT:
 [
-  {"topic":"legna fresca vs stagionata: cosa cambia nel forno","pilastro":"tecnico","photoId":"","parlato":"","note":"confronto educativo per pizzaioli"},
-  {"topic":"consegna in 24h: come funziona il nostro servizio","pilastro":"servizio","photoId":"","parlato":"","note":"evidenziare velocità e affidabilità"}
+  {"topic":"come l'AI sta cambiando il lavoro nel 2025","pilastro":"educativo","photoId":"ai_lavoro_01.jpg","parlato":"","note":"dati e trend recenti"},
+  {"topic":"disinformazione: come riconoscere una notizia falsa","pilastro":"tutorial","photoId":"fact_check.jpg","parlato":"","note":"angolazione pratica"}
 ]`;
 
 async function parseMessageWithAI(userMessage) {
@@ -174,7 +176,7 @@ export function startTelegramBot(onRunPipeline, getState) {
       '/run — Forza esecuzione',
       '',
       '💡 Oppure scrivimi qualcosa come:',
-      '<i>"fai un video sulla pezzatura della legna per forni professionali"</i>',
+      '<i>"fai un video sull\'intelligenza artificiale nel lavoro e uno sul futuro della robotica"</i>',
     ].join('\n'), { parse_mode: 'HTML' });
   });
 

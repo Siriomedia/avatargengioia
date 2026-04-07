@@ -37,17 +37,21 @@ const POLL_MAX         = 60;   // 5 minuti max
  */
 function buildCaption(item) {
   const hashtags = [
-    '#avatargengoia', '#legnapizzeria', '#pizzaprofessionale',
-    '#fornopizza', '#pizzanapoletana', '#artigianalità',
-    '#legnaqualità', '#pizzaiolo',
+    '#avatargengoia', '#videoAI', '#contentcreator',
+    '#socialmedia', '#reels', '#shorts',
   ];
 
   const pilastroTag = {
-    tecnico:  '#tecnicaforno',
-    prodotto: '#legnaqualità',
-    servizio: '#consegna24h',
-    brand:    '#tradizione',
-  }[item.pilastro] || '';
+    educativo:    '#imparare',
+    opinione:     '#analisi',
+    tutorial:     '#comefare',
+    ispirazione:  '#motivazione',
+    notizia:      '#trend',
+    brand:        '#backstage',
+    tecnico:      '#approfondimento',
+    prodotto:     '#novità',
+    servizio:     '#servizi',
+  }[item.pilastro] || '#contenuti';
 
   return [
     item.topic,
