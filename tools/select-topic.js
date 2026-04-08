@@ -9,7 +9,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const __dirname   = path.dirname(fileURLToPath(import.meta.url));
-const TOPICS_FILE = path.join(__dirname, '../config/topics.json');
+const projectDir  = path.join(__dirname, '..');
+// Rispetta DATA_DIR come server.js (volume Railway o cartella locale)
+const DATA_DIR    = process.env.DATA_DIR || null;
+const TOPICS_FILE = DATA_DIR
+  ? path.join(DATA_DIR, 'topics.json')
+  : path.join(projectDir, 'config', 'topics.json');
 
 function readTopics() {
   if (!fs.existsSync(TOPICS_FILE)) return [];

@@ -66,6 +66,7 @@ let pipelineState = {
   steps: [],
   cron: config.cron.schedule,
   env: config.isDev ? 'development' : 'production',
+  queue: { total: 0, current: 0, remaining: 0 },
   keys: {
     heygen:    !!config.heygen.apiKey    && !config.heygen.apiKey.includes('...'),
     anthropic: !!config.anthropic.apiKey && !config.anthropic.apiKey.includes('...'),
@@ -189,7 +190,7 @@ async function runPipeline() {
     const running = pipelineState.steps.find(s => s.status === 'running');
     if (running) setStep(running.name, 'error', err.message.slice(0, 60));
     setState({ status: 'error', lastResult: err.message });
-    if (currentTopicId) updateTopicStatus(currentTopicId, 'pending');
+    if (currentTopicId) updateTopicStatus(currentTopicId, 'error');
   }
 }
 
@@ -205,57 +206,79 @@ const telegram = startTelegramBot(
  * Al termine di tutti, invia un riepilogo finale.
  */
 async function runPipelineAll() {
+  // ── 0. Applica config-override.json a process.env ─────────────────────────
+  // I valori salvati dalla dashboard (config-override.json) sovrascrivono
+  // le variabili Railway originali, garantendo che aspect_ratio/etc. siano corretti.
+  if (fs.existsSync(CONFIG_OVERRIDE_FILE)) {
+    try {
+      const overrides = JSON.parse(fs.readFileSync(CONFIG_OVERRIDE_FILE, 'utf8'));
+      for (const [k, v] of Object.entries(overrides)) process.env[k] = String(v);
+      logger.info(`Config override applicato: ${Object.keys(overrides).join(', ')}`);
+    } catch (e) {
+      logger.warn(`Config override non leggibile: ${e.message}`);
+    }
+  }
+
   const results = [];
   let processed = 0;
 
-  while (true) {
-    const topics = JSON.parse(fs.readFileSync(
-      path.join(__dirname, 'config', 'topics.json'), 'utf8'
-    ).toString()).filter(t => t.status === 'pending');
+  // Conta i topic pending PRIMA di partire
+  const totalToProcess = readTopics().filter(t => t.status === 'pending').length;
+  if (totalToProcess === 0) {
+    telegram.sendMessage('📭 Nessun topic pending da processare.');
+    return;
+  }
+  logger.info(`Coda: ${totalToProcess} topic pending da elaborare`);
+  setState({ ...pipelineState, queue: { total: totalToProcess, current: 0, remaining: totalToProcess } });
 
-    if (!topics.length) break;
+  while (true) {
+    // Usa readTopics() (rispetta TOPICS_FILE / DATA_DIR) invece del percorso hardcoded
+    const pendingTopics = readTopics().filter(t => t.status === 'pending');
+    if (!pendingTopics.length) break;
+
+    const currentNum = processed + 1;
+    setState({ ...pipelineState, queue: { total: totalToProcess, current: currentNum, remaining: pendingTopics.length } });
+    logger.info(`▶ Video ${currentNum} di ${totalToProcess} — topic: "${pendingTopics[0].topic}"`);
 
     await runPipeline();
     processed++;
 
-    // Raccogli risultato dell'ultimo run
     if (pipelineState.status === 'success' && pipelineState.lastResult) {
       const lastTopic = pipelineState.steps.find(s => s.name === 'Topic');
       results.push({
         topic: lastTopic?.detail || `Video #${processed}`,
         path:  pipelineState.lastResult,
       });
-
-      // Notifica singolo video completato (il video è già stato inviato dallo step)
       telegram.sendMessage(
-        `✅ <b>Video completato!</b>\n\n` +
+        `✅ <b>Video ${currentNum}/${totalToProcess} completato!</b>\n\n` +
         `📹 ${lastTopic?.detail || 'Video'}\n` +
         `📁 ${path.basename(pipelineState.lastResult)}`
       );
     } else if (pipelineState.status === 'error') {
+      // Il topic è già stato marcato 'error' in runPipeline — non torna a 'pending'
+      // quindi il loop non si blocca sullo stesso topic fallito
       const lastTopic = pipelineState.steps.find(s => s.name === 'Topic');
       telegram.sendMessage(
-        `❌ <b>Errore pipeline</b>\n\n` +
+        `❌ <b>Errore video ${currentNum}/${totalToProcess}</b>\n\n` +
         `📹 ${lastTopic?.detail || 'Video'}\n` +
         `⚠️ ${pipelineState.lastResult || 'Errore sconosciuto'}\n\n` +
         `➡️ Continuo con il prossimo topic…`
       );
-      // Non interrompere: continua con i topic rimanenti
     }
   }
+
+  // Aggiorna queue a fine corsa
+  setState({ ...pipelineState, queue: { total: totalToProcess, current: totalToProcess, remaining: 0 } });
 
   // Riepilogo finale
   if (results.length > 0) {
     const lines = results.map((r, i) =>
       `  ${i + 1}. <b>${r.topic}</b>\n     📁 ${path.basename(r.path)}`
     ).join('\n\n');
-
     telegram.sendMessage(
       `🎬 <b>Pipeline completata!</b>\n\n` +
-      `📊 ${results.length} video generati e inviati:\n\n${lines}`
+      `📊 ${results.length}/${totalToProcess} video generati:\n\n${lines}`
     );
-  } else if (processed === 0) {
-    telegram.sendMessage('📭 Nessun topic pending da processare.');
   }
 }
 
