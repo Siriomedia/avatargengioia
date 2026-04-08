@@ -14,7 +14,7 @@
     "photoId": "ai_lavoro_01.jpg",
     "parlato": "Nel 2025 quasi la metà dei compiti amministrativi può essere automatizzata. Non significa perdere il lavoro — significa liberare tempo per ciò che conta davvero: creatività, relazioni, decisioni strategiche. Chi ha già integrato l'AI nella propria routine risparmia in media due ore al giorno. Due ore che puoi dedicare a quello che ti appassiona davvero. Inizia con un tool, un task, dieci minuti. Il futuro non aspetta.",
     "note": "Tono ottimista, dati concreti",
-    "status": "pending"
+    "status": "done"
   },
   {
     "id": 3,
@@ -23,7 +23,7 @@
     "photoId": "sostenibilita_03.jpg",
     "parlato": "",
     "note": "Angolazione critica e costruttiva",
-    "status": "done"
+    "status": "in-progress"
   },
   {
     "id": 4,
@@ -32,7 +32,7 @@
     "photoId": "chatgpt_04.jpg",
     "parlato": "",
     "note": "Step by step pratico",
-    "status": "done"
+    "status": "pending"
   },
   {
     "id": 5,

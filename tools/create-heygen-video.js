@@ -26,31 +26,63 @@ export async function createHeygenVideo(scriptText) {
 
   // ── 1. Invia richiesta di generazione ────────────────────────────────────
   // motion_mode: 'normal' = Avatar IV (premium), 'standard' = Avatar III
-  const motionMode = config.heygen.motionEngine === '4' ? 'normal' : 'standard';
+  const motionMode    = config.heygen.motionEngine === '4' ? 'normal' : 'standard';
+  const aspectRatio   = process.env.HEYGEN_ASPECT_RATIO              || '9:16';
+  const exprIntensity = parseFloat(process.env.HEYGEN_EXPRESSION_INTENSITY ?? 0.3);
+  const avatarStyle   = process.env.HEYGEN_AVATAR_STYLE              || 'normal';
+  const bgColor       = process.env.HEYGEN_BG_COLOR                  || '#1a1a1a';
+  const voiceSpeed    = parseFloat(process.env.HEYGEN_VOICE_SPEED    ?? 1.0);
+  const voicePitch    = parseInt(process.env.HEYGEN_VOICE_PITCH      ?? 0, 10);
+  const voiceEmotion  = process.env.HEYGEN_VOICE_EMOTION             || '';
+  const voiceLocale   = process.env.HEYGEN_VOICE_LOCALE              || '';
+  const bgType        = process.env.HEYGEN_BG_TYPE                   || 'color';
+  const bgImageUrl    = process.env.HEYGEN_BG_IMAGE_URL              || '';
+  const bgPlayStyle   = process.env.HEYGEN_BG_PLAY_STYLE             || 'loop';
+  const circleBgColor = process.env.HEYGEN_CIRCLE_BG_COLOR           || '#000000';
+  const offsetX       = parseFloat(process.env.HEYGEN_AVATAR_OFFSET_X ?? 0);
+  const offsetY       = parseFloat(process.env.HEYGEN_AVATAR_OFFSET_Y ?? 0);
+  const caption       = process.env.HEYGEN_CAPTION === 'true';
+  const videoTitle    = process.env.HEYGEN_VIDEO_TITLE               || '';
+
+  // Costruisci background
+  let background;
+  if (bgType === 'image' && bgImageUrl) {
+    background = { type: 'image', url: bgImageUrl };
+  } else if (bgType === 'video' && bgImageUrl) {
+    background = { type: 'video', url: bgImageUrl, play_style: bgPlayStyle };
+  } else {
+    background = { type: 'color', value: bgColor };
+  }
+
+  // Costruisci voice object
+  const voiceObj = {
+    type:       'text',
+    input_text: scriptText,
+    voice_id:   config.heygen.voiceId,
+    speed:      voiceSpeed,
+    pitch:      voicePitch,
+  };
+  if (voiceEmotion) voiceObj.emotion = voiceEmotion;
+  if (voiceLocale)  voiceObj.locale  = voiceLocale;
+
+  // Costruisci character object
+  const characterObj = {
+    type:                 'avatar',
+    avatar_id:            config.heygen.avatarId,
+    avatar_style:         avatarStyle,
+    motion_mode:          motionMode,
+    expression_intensity: exprIntensity,
+  };
+  if (avatarStyle === 'circle' && circleBgColor) characterObj.circle_background_color = circleBgColor;
+  if (offsetX !== 0 || offsetY !== 0) characterObj.offset = { x: offsetX, y: offsetY };
 
   const payload = {
-    video_inputs: [
-      {
-        character: {
-          type:         'avatar',
-          avatar_id:    config.heygen.avatarId,
-          avatar_style: 'normal',
-          motion_mode:  motionMode,
-        },
-        voice: {
-          type:       'text',
-          input_text: scriptText,
-          voice_id:   config.heygen.voiceId,
-        },
-        background: {
-          type:  'color',
-          value: '#1a1a1a',
-        },
-      },
-    ],
-    aspect_ratio: '9:16',
-    test: config.isDev,   // In DEV usa crediti di test (watermark)
+    video_inputs: [{ character: characterObj, voice: voiceObj, background }],
+    aspect_ratio: aspectRatio,
+    caption,
+    test: config.isDev,
   };
+  if (videoTitle) payload.title = videoTitle;
 
   logger.info(`HeyGen: avvio generazione video (test=${config.isDev}, motionEngine=Avatar ${config.heygen.motionEngine})`);
 

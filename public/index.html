@@ -1482,9 +1482,231 @@
             </div>
           </div>
 
+          <!-- Velocità voce -->
+          <div class="cfg-field">
+            <label class="cfg-label">Velocità voce</label>
+            <div class="cfg-desc">Velocità della sintesi vocale. 1.0 = normale. Valori bassi = voce lenta, valori alti = voce veloce.</div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+              <input type="range" id="cfg-HEYGEN_VOICE_SPEED" min="0.5" max="2.0" step="0.1" value="1.0"
+                style="flex:1;accent-color:var(--accent)"
+                oninput="document.getElementById('lbl-speed').textContent=parseFloat(this.value).toFixed(1)+'x'" />
+              <span id="lbl-speed" style="font-size:15px;font-weight:700;color:var(--accent);min-width:42px;text-align:right">1.0x</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:2px">
+              <span>Lento (0.5x)</span><span>Normale (1.0x)</span><span>Veloce (2.0x)</span>
+            </div>
+          </div>
+
+          <!-- Pitch voce -->
+          <div class="cfg-field">
+            <label class="cfg-label">Pitch (tono) voce</label>
+            <div class="cfg-desc">Altezza della voce. 0 = tono originale. Negativo = più grave, Positivo = più acuto.</div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+              <input type="range" id="cfg-HEYGEN_VOICE_PITCH" min="-50" max="50" step="1" value="0"
+                style="flex:1;accent-color:var(--accent)"
+                oninput="document.getElementById('lbl-pitch').textContent=(this.value>0?'+':'')+this.value" />
+              <span id="lbl-pitch" style="font-size:15px;font-weight:700;color:var(--accent);min-width:42px;text-align:right">0</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:2px">
+              <span>Grave (-50)</span><span>Originale (0)</span><span>Acuto (+50)</span>
+            </div>
+          </div>
+
+          <!-- Emozione voce -->
+          <div class="cfg-field">
+            <label class="cfg-label">Emozione voce <span class="opt">(opzionale)</span></label>
+            <div class="cfg-desc">Stile emozionale della sintesi vocale. Non tutte le voci lo supportano.</div>
+            <select id="cfg-HEYGEN_VOICE_EMOTION" class="cfg-input" style="font-family:sans-serif">
+              <option value="">— Nessuna (default voce)</option>
+              <option value="Excited">Excited — Entusiasta</option>
+              <option value="Serious">Serious — Serio e formale</option>
+              <option value="Friendly">Friendly — Amichevole</option>
+              <option value="Soothing">Soothing — Tranquillo/calmo</option>
+              <option value="Broadcaster">Broadcaster — Stile giornalistico</option>
+            </select>
+          </div>
+
+          <!-- Locale voce -->
+          <div class="cfg-field">
+            <label class="cfg-label">Locale / Accento <span class="opt">(opzionale)</span></label>
+            <div class="cfg-desc">Codice locale per l'accento della voce (es. <code>it-IT</code>, <code>en-US</code>, <code>en-GB</code>). Lascia vuoto per usare il default della voce selezionata.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-HEYGEN_VOICE_LOCALE" class="cfg-input" type="text" placeholder="es. it-IT" autocomplete="off" />
+            </div>
+          </div>
+
+          <!-- Formato video -->
+          <div class="cfg-field">
+            <label class="cfg-label">Formato video</label>
+            <div class="cfg-desc">Rapporto d'aspetto del video generato da HeyGen.</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+              <label class="cfg-radio-pill" id="pill-ratio-916">
+                <input type="radio" name="ratio" value="9:16" onchange="document.getElementById('cfg-HEYGEN_ASPECT_RATIO').value=this.value;syncRatioPills()" />
+                <span>9:16 &mdash; Verticale (Reel/TikTok)</span>
+              </label>
+              <label class="cfg-radio-pill" id="pill-ratio-169">
+                <input type="radio" name="ratio" value="16:9" onchange="document.getElementById('cfg-HEYGEN_ASPECT_RATIO').value=this.value;syncRatioPills()" />
+                <span>16:9 &mdash; Orizzontale (YouTube)</span>
+              </label>
+              <label class="cfg-radio-pill" id="pill-ratio-11">
+                <input type="radio" name="ratio" value="1:1" onchange="document.getElementById('cfg-HEYGEN_ASPECT_RATIO').value=this.value;syncRatioPills()" />
+                <span>1:1 &mdash; Quadrato</span>
+              </label>
+            </div>
+            <input type="hidden" id="cfg-HEYGEN_ASPECT_RATIO" value="9:16" />
+          </div>
+
+          <!-- Intensità labiale -->
+          <div class="cfg-field">
+            <label class="cfg-label">Intensità espressione labiale</label>
+            <div class="cfg-desc">Quanto si muovono le labbra e il viso dell'avatar. Valore basso = movimenti naturali, valore alto = enfatici.</div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+              <input type="range" id="cfg-HEYGEN_EXPRESSION_INTENSITY" min="0" max="1" step="0.05" value="0.3"
+                style="flex:1;accent-color:var(--accent)"
+                oninput="document.getElementById('lbl-expr').textContent=parseFloat(this.value).toFixed(2)" />
+              <span id="lbl-expr" style="font-size:15px;font-weight:700;color:var(--accent);min-width:38px;text-align:right">0.30</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);margin-top:2px">
+              <span>Naturale (0.0)</span><span>Normale (0.5)</span><span>Enfatico (1.0)</span>
+            </div>
+          </div>
+
+          <!-- Stile avatar -->
+          <div class="cfg-field">
+            <label class="cfg-label">Stile avatar</label>
+            <div class="cfg-desc">Modalità di rendering dell'avatar nel video.</div>
+            <select id="cfg-HEYGEN_AVATAR_STYLE" class="cfg-input" style="font-family:sans-serif"
+              onchange="onAvatarStyleChange(this.value)">
+              <option value="normal">Normal — Avatar standard (consigliato)</option>
+              <option value="closeUp">Close Up — Inquadratura ravvicinata</option>
+              <option value="circle">Circle — Avatar in cerchio</option>
+            </select>
+          </div>
+
+          <!-- Colore sfondo cerchio (solo per stile Circle) -->
+          <div class="cfg-field" id="field-circle-bg" style="display:none">
+            <label class="cfg-label">Colore sfondo cerchio</label>
+            <div class="cfg-desc">Colore di sfondo del cerchio quando lo stile avatar è "Circle" (es. <code>#000000</code>).</div>
+            <div style="display:flex;gap:8px;align-items:center;margin-top:4px">
+              <input type="color" id="circle-bg-picker" value="#000000"
+                style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px;background:none"
+                oninput="document.getElementById('cfg-HEYGEN_CIRCLE_BG_COLOR').value=this.value" />
+              <input type="text" id="cfg-HEYGEN_CIRCLE_BG_COLOR" class="cfg-input" value="#000000"
+                style="max-width:110px;font-family:monospace"
+                oninput="if(/^#[0-9a-f]{6}$/i.test(this.value))document.getElementById('circle-bg-picker').value=this.value"
+                placeholder="#000000" />
+            </div>
+          </div>
+
+          <!-- Posizione avatar: Offset X -->
+          <div class="cfg-field">
+            <label class="cfg-label">Posizione avatar — Offset X</label>
+            <div class="cfg-desc">Sposta orizzontalmente l'avatar. 0 = centrato. Negativo = sinistra, Positivo = destra.</div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+              <input type="range" id="cfg-HEYGEN_AVATAR_OFFSET_X" min="-0.5" max="0.5" step="0.01" value="0"
+                style="flex:1;accent-color:var(--accent)"
+                oninput="document.getElementById('lbl-offset-x').textContent=(parseFloat(this.value)>=0?'+':'')+parseFloat(this.value).toFixed(2)" />
+              <span id="lbl-offset-x" style="font-size:15px;font-weight:700;color:var(--accent);min-width:48px;text-align:right">+0.00</span>
+            </div>
+          </div>
+
+          <!-- Posizione avatar: Offset Y -->
+          <div class="cfg-field">
+            <label class="cfg-label">Posizione avatar — Offset Y</label>
+            <div class="cfg-desc">Sposta verticalmente l'avatar. 0 = centrato. Negativo = su, Positivo = giù.</div>
+            <div style="display:flex;align-items:center;gap:14px;margin-top:6px">
+              <input type="range" id="cfg-HEYGEN_AVATAR_OFFSET_Y" min="-0.5" max="0.5" step="0.01" value="0"
+                style="flex:1;accent-color:var(--accent)"
+                oninput="document.getElementById('lbl-offset-y').textContent=(parseFloat(this.value)>=0?'+':'')+parseFloat(this.value).toFixed(2)" />
+              <span id="lbl-offset-y" style="font-size:15px;font-weight:700;color:var(--accent);min-width:48px;text-align:right">+0.00</span>
+            </div>
+          </div>
+
+          <!-- Tipo sfondo -->
+          <div class="cfg-field">
+            <label class="cfg-label">Tipo sfondo</label>
+            <div class="cfg-desc">Sfondo a colore solido, immagine o video loop. Per immagine/video fornisci un URL pubblico accessibile.</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:4px">
+              <label class="cfg-radio-pill" id="pill-bg-color">
+                <input type="radio" name="bgtype" value="color" onchange="onBgTypeChange('color')" />
+                <span>🎨 Colore</span>
+              </label>
+              <label class="cfg-radio-pill" id="pill-bg-image">
+                <input type="radio" name="bgtype" value="image" onchange="onBgTypeChange('image')" />
+                <span>🖼 Immagine</span>
+              </label>
+              <label class="cfg-radio-pill" id="pill-bg-video">
+                <input type="radio" name="bgtype" value="video" onchange="onBgTypeChange('video')" />
+                <span>🎬 Video</span>
+              </label>
+            </div>
+            <input type="hidden" id="cfg-HEYGEN_BG_TYPE" value="color" />
+          </div>
+
+          <!-- Sfondo: Colore solido -->
+          <div class="cfg-field" id="field-bg-color">
+            <label class="cfg-label">Colore sfondo</label>
+            <div class="cfg-desc">Colore di sfondo del video. <code>#008000</code> = green screen per rimozione sfondo.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:4px">
+              <div id="swatch-000000" class="bg-swatch" style="background:#000000" onclick="setBgColor('#000000')"></div>
+              <div id="swatch-1a1a1a" class="bg-swatch" style="background:#1a1a1a" onclick="setBgColor('#1a1a1a')"></div>
+              <div id="swatch-0a1628" class="bg-swatch" style="background:#0a1628" onclick="setBgColor('#0a1628')"></div>
+              <div id="swatch-ffffff" class="bg-swatch" style="background:#ffffff;border:1px solid #ccc" onclick="setBgColor('#ffffff')"></div>
+              <div id="swatch-f0f5fc" class="bg-swatch" style="background:#f0f5fc;border:1px solid #ccc" onclick="setBgColor('#f0f5fc')"></div>
+              <div id="swatch-1a6fdf" class="bg-swatch" style="background:#1a6fdf" onclick="setBgColor('#1a6fdf')"></div>
+              <div id="swatch-008000" class="bg-swatch" style="background:#008000" onclick="setBgColor('#008000')" title="Green Screen"></div>
+              <input type="color" id="bg-color-picker" value="#1a1a1a" style="width:36px;height:36px;border:none;border-radius:8px;cursor:pointer;padding:2px;background:none" oninput="setBgColor(this.value)" />
+              <input type="text" id="cfg-HEYGEN_BG_COLOR" class="cfg-input" value="#1a1a1a"
+                style="max-width:110px;font-family:monospace"
+                oninput="syncBgSwatch(this.value)" placeholder="#1a1a1a" />
+            </div>
+          </div>
+
+          <!-- Sfondo: URL immagine / video -->
+          <div class="cfg-field" id="field-bg-url" style="display:none">
+            <label class="cfg-label">URL sfondo (immagine o video)</label>
+            <div class="cfg-desc">URL pubblico dell'immagine o video da usare come sfondo. Deve essere accessibile senza autenticazione.</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-HEYGEN_BG_IMAGE_URL" class="cfg-input" type="text" placeholder="https://esempio.com/sfondo.jpg" autocomplete="off" />
+            </div>
+          </div>
+
+          <!-- Sfondo: Play style (solo per video) -->
+          <div class="cfg-field" id="field-bg-play" style="display:none">
+            <label class="cfg-label">Stile riproduzione video sfondo</label>
+            <div class="cfg-desc">Come viene sincronizzato il video di sfondo con la durata della scena.</div>
+            <select id="cfg-HEYGEN_BG_PLAY_STYLE" class="cfg-input" style="font-family:sans-serif">
+              <option value="loop">Loop — Ripete in loop</option>
+              <option value="fit_to_scene">Fit to Scene — Adatta alla durata scena</option>
+              <option value="freeze">Freeze — Congela l'ultimo frame</option>
+              <option value="full_video">Full Video — Usa l'intero video</option>
+            </select>
+          </div>
+
+          <!-- Didascalie automatiche -->
+          <div class="cfg-field">
+            <label class="cfg-label">Didascalie automatiche (caption)</label>
+            <div class="cfg-desc">Aggiunge sottotitoli automatici al video generato. Supportato solo con input testo (non audio upload).</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-top:4px">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:14px">
+                <input type="checkbox" id="cfg-HEYGEN_CAPTION" style="width:18px;height:18px;cursor:pointer;accent-color:var(--accent)" />
+                <span>Attiva didascalie automatiche</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Titolo video nel dashboard HeyGen -->
+          <div class="cfg-field">
+            <label class="cfg-label">Titolo video HeyGen <span class="opt">(opzionale)</span></label>
+            <div class="cfg-desc">Titolo del video nel dashboard HeyGen (non appare nel video, solo nell'archivio online).</div>
+            <div class="cfg-input-wrap">
+              <input id="cfg-HEYGEN_VIDEO_TITLE" class="cfg-input" type="text" placeholder="es. Reel Settimana 3 - AI Marketing" autocomplete="off" />
+            </div>
+          </div>
+
           <div class="cfg-save-row">
             <button class="cfg-save-btn" onclick="saveSection('heygen')">💾 Salva HeyGen</button>
-            <span id="fb-heygen" class="cfg-feedback empty">—</span>
+            <span id="fb-heygen" class="cfg-feedback empty">&mdash;</span>
           </div>
         </div>
       </div>
@@ -2350,6 +2572,64 @@
     document.getElementById('me-pill-4').classList.toggle('selected', v === '4');
   }
 
+  const RANGE_LABELS = {
+    'HEYGEN_EXPRESSION_INTENSITY': { lbl: 'lbl-expr',     prec: 2, fmt: v => v.toFixed(2) },
+    'HEYGEN_VOICE_SPEED':          { lbl: 'lbl-speed',    prec: 1, fmt: v => v.toFixed(1) + 'x' },
+    'HEYGEN_VOICE_PITCH':          { lbl: 'lbl-pitch',    prec: 0, fmt: v => (v > 0 ? '+' : '') + Math.round(v) },
+    'HEYGEN_AVATAR_OFFSET_X':      { lbl: 'lbl-offset-x', prec: 2, fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2) },
+    'HEYGEN_AVATAR_OFFSET_Y':      { lbl: 'lbl-offset-y', prec: 2, fmt: v => (v >= 0 ? '+' : '') + v.toFixed(2) },
+  };
+
+  function onAvatarStyleChange(val) {
+    const el = document.getElementById('field-circle-bg');
+    if (el) el.style.display = (val === 'circle') ? '' : 'none';
+  }
+
+  function syncBgTypePills() {
+    const val = document.getElementById('cfg-HEYGEN_BG_TYPE').value;
+    document.querySelectorAll('.cfg-radio-pill').forEach(p => {
+      const inp = p.querySelector('input[name="bgtype"]');
+      if (inp) p.classList.toggle('active', inp.value === val);
+    });
+  }
+
+  function syncBgTypeFields() {
+    const t = document.getElementById('cfg-HEYGEN_BG_TYPE').value;
+    const colorEl = document.getElementById('field-bg-color');
+    const urlEl   = document.getElementById('field-bg-url');
+    const playEl  = document.getElementById('field-bg-play');
+    if (colorEl) colorEl.style.display = (t === 'color') ? '' : 'none';
+    if (urlEl)   urlEl.style.display   = (t !== 'color') ? '' : 'none';
+    if (playEl)  playEl.style.display  = (t === 'video') ? '' : 'none';
+  }
+
+  function onBgTypeChange(val) {
+    document.getElementById('cfg-HEYGEN_BG_TYPE').value = val;
+    syncBgTypePills();
+    syncBgTypeFields();
+  }
+
+  function syncRatioPills() {
+    const val = document.getElementById('cfg-HEYGEN_ASPECT_RATIO').value;
+    document.querySelectorAll('.cfg-radio-pill').forEach(p => {
+      const inp = p.querySelector('input[name="ratio"]');
+      if (inp) p.classList.toggle('active', inp.value === val);
+    });
+  }
+
+  function setBgColor(hex) {
+    document.getElementById('cfg-HEYGEN_BG_COLOR').value = hex;
+    document.getElementById('bg-color-picker').value = hex.length === 7 ? hex : '#1a1a1a';
+    syncBgSwatch(hex);
+  }
+  function syncBgSwatch(hex) {
+    document.querySelectorAll('.bg-swatch').forEach(s => s.classList.remove('active'));
+    const id = 'swatch-' + hex.replace('#','').toLowerCase();
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+    document.getElementById('bg-color-picker').value = /^#[0-9a-f]{6}$/i.test(hex) ? hex : '#1a1a1a';
+  }
+
   async function loadConfigTab() {
     try {
       const res  = await fetch('/api/config');
@@ -2357,6 +2637,11 @@
       // Popola i campi (mostra mascherata se presente)
       const fields = [
         'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID',
+        'HEYGEN_ASPECT_RATIO','HEYGEN_EXPRESSION_INTENSITY','HEYGEN_AVATAR_STYLE','HEYGEN_BG_COLOR',
+        'HEYGEN_VOICE_SPEED','HEYGEN_VOICE_PITCH','HEYGEN_VOICE_EMOTION','HEYGEN_VOICE_LOCALE',
+        'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
+        'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
+        'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE',
         'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
         'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
         'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
@@ -2367,10 +2652,36 @@
         if (!el) continue;
         if (el.tagName === 'SELECT') {
           el.value = data[key] || el.options[0].value;
+        } else if (el.type === 'range') {
+          const info = RANGE_LABELS[key];
+          const RANGE_DEFS = { HEYGEN_EXPRESSION_INTENSITY: 0.3, HEYGEN_VOICE_SPEED: 1.0 };
+          const v = parseFloat(data[key] ?? (RANGE_DEFS[key] ?? 0));
+          el.value = v;
+          if (info?.lbl) { const lbl = document.getElementById(info.lbl); if (lbl) lbl.textContent = info.fmt(v); }
+        } else if (el.type === 'checkbox') {
+          el.checked = data[key] === 'true';
         } else {
           el.value = data[key] || '';
         }
       }
+      // Aspect ratio pills
+      const ratio = data.HEYGEN_ASPECT_RATIO || '9:16';
+      document.getElementById('cfg-HEYGEN_ASPECT_RATIO').value = ratio;
+      syncRatioPills();
+      // Background swatch
+      const bg = data.HEYGEN_BG_COLOR || '#1a1a1a';
+      setBgColor(bg);
+      // BG Type pills + show/hide fields
+      const bgType = data.HEYGEN_BG_TYPE || 'color';
+      document.getElementById('cfg-HEYGEN_BG_TYPE').value = bgType;
+      syncBgTypePills(); syncBgTypeFields();
+      // Circle BG Color picker
+      const circleBg = data.HEYGEN_CIRCLE_BG_COLOR || '#000000';
+      document.getElementById('cfg-HEYGEN_CIRCLE_BG_COLOR').value = circleBg;
+      const cpEl = document.getElementById('circle-bg-picker');
+      if (cpEl && /^#[0-9a-f]{6}$/i.test(circleBg)) cpEl.value = circleBg;
+      // Avatar style → show/hide circle bg field
+      onAvatarStyleChange(data.HEYGEN_AVATAR_STYLE || 'normal');
       // Motion Engine pills
       selectMotionEngine(data.HEYGEN_MOTION_ENGINE || '3');
       // Aggiorna badge
@@ -2403,7 +2714,14 @@
   }
 
   const SECTION_KEYS = {
-    heygen:   ['HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE'],
+    heygen: [
+      'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE',
+      'HEYGEN_ASPECT_RATIO','HEYGEN_EXPRESSION_INTENSITY','HEYGEN_AVATAR_STYLE','HEYGEN_BG_COLOR',
+      'HEYGEN_VOICE_SPEED','HEYGEN_VOICE_PITCH','HEYGEN_VOICE_EMOTION','HEYGEN_VOICE_LOCALE',
+      'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
+      'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
+      'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE',
+    ],
     anthropic:['ANTHROPIC_API_KEY','ANTHROPIC_MODEL'],
     meta:     ['META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID'],
     telegram: ['TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID'],
@@ -2416,7 +2734,14 @@
     const body = {};
     for (const key of (SECTION_KEYS[section] || [])) {
       const el = document.getElementById('cfg-' + key);
-      if (el) body[key] = el.tagName === 'SELECT' ? el.value : el.value.trim();
+      if (!el) continue;
+      if (el.tagName === 'SELECT') body[key] = el.value;
+      else if (el.type === 'checkbox') body[key] = el.checked ? 'true' : 'false';
+      else if (el.type === 'range') {
+        const info = RANGE_LABELS[key];
+        body[key] = parseFloat(el.value).toFixed(info?.prec ?? 2);
+      }
+      else body[key] = el.value.trim();
     }
     btn.disabled = true;
     try {

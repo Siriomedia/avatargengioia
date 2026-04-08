@@ -237,9 +237,10 @@ async function runPipelineAll() {
       telegram.sendMessage(
         `❌ <b>Errore pipeline</b>\n\n` +
         `📹 ${lastTopic?.detail || 'Video'}\n` +
-        `⚠️ ${pipelineState.lastResult || 'Errore sconosciuto'}`
+        `⚠️ ${pipelineState.lastResult || 'Errore sconosciuto'}\n\n` +
+        `➡️ Continuo con il prossimo topic…`
       );
-      break; // Interrompi in caso di errore
+      // Non interrompere: continua con i topic rimanenti
     }
   }
 
@@ -345,6 +346,11 @@ const ENV_FILE            = path.join(__dirname, '.env');
 const CONFIG_OVERRIDE_FILE = path.join(DATA_DIR, 'config-override.json');
 const ENV_KNOWN_KEYS = [
   'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE',
+  'HEYGEN_ASPECT_RATIO','HEYGEN_EXPRESSION_INTENSITY','HEYGEN_AVATAR_STYLE','HEYGEN_BG_COLOR',
+  'HEYGEN_VOICE_SPEED','HEYGEN_VOICE_PITCH','HEYGEN_VOICE_EMOTION','HEYGEN_VOICE_LOCALE',
+  'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
+  'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
+  'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE',
   'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
   'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
   'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
@@ -400,18 +406,34 @@ function maskKey(val) {
 app.get('/api/config', (_req, res) => {
   const env = readEnvFile();
   res.json({
-    HEYGEN_API_KEY:       maskKey(env.HEYGEN_API_KEY),
-    HEYGEN_AVATAR_ID:     env.HEYGEN_AVATAR_ID       || '',
-    HEYGEN_VOICE_ID:      env.HEYGEN_VOICE_ID        || '',
-    HEYGEN_MOTION_ENGINE: env.HEYGEN_MOTION_ENGINE   || '3',
-    ANTHROPIC_API_KEY:    maskKey(env.ANTHROPIC_API_KEY),
-    ANTHROPIC_MODEL:      env.ANTHROPIC_MODEL        || 'claude-sonnet-4-20250514',
-    META_ACCESS_TOKEN:    maskKey(env.META_ACCESS_TOKEN),
-    INSTAGRAM_ACCOUNT_ID: env.INSTAGRAM_ACCOUNT_ID  || '',
-    TELEGRAM_BOT_TOKEN:   maskKey(env.TELEGRAM_BOT_TOKEN),
-    TELEGRAM_CHAT_ID:     env.TELEGRAM_CHAT_ID       || '',
-    CRON_SCHEDULE:        env.CRON_SCHEDULE          || '30 9 * * 1,3,5',
-    PHOTOS_BASE_PATH:     env.PHOTOS_BASE_PATH       || './assets/photos',
+    HEYGEN_API_KEY:                maskKey(env.HEYGEN_API_KEY),
+    HEYGEN_AVATAR_ID:              env.HEYGEN_AVATAR_ID              || '',
+    HEYGEN_VOICE_ID:               env.HEYGEN_VOICE_ID               || '',
+    HEYGEN_MOTION_ENGINE:          env.HEYGEN_MOTION_ENGINE          || '3',
+    HEYGEN_ASPECT_RATIO:           env.HEYGEN_ASPECT_RATIO           || '9:16',
+    HEYGEN_EXPRESSION_INTENSITY:   env.HEYGEN_EXPRESSION_INTENSITY   || '0.30',
+    HEYGEN_AVATAR_STYLE:           env.HEYGEN_AVATAR_STYLE           || 'normal',
+    HEYGEN_BG_COLOR:               env.HEYGEN_BG_COLOR               || '#1a1a1a',
+    HEYGEN_VOICE_SPEED:            env.HEYGEN_VOICE_SPEED            || '1.0',
+    HEYGEN_VOICE_PITCH:            env.HEYGEN_VOICE_PITCH            || '0',
+    HEYGEN_VOICE_EMOTION:          env.HEYGEN_VOICE_EMOTION          || '',
+    HEYGEN_VOICE_LOCALE:           env.HEYGEN_VOICE_LOCALE           || '',
+    HEYGEN_BG_TYPE:                env.HEYGEN_BG_TYPE                || 'color',
+    HEYGEN_BG_IMAGE_URL:           env.HEYGEN_BG_IMAGE_URL           || '',
+    HEYGEN_BG_PLAY_STYLE:          env.HEYGEN_BG_PLAY_STYLE          || 'loop',
+    HEYGEN_CIRCLE_BG_COLOR:        env.HEYGEN_CIRCLE_BG_COLOR        || '#000000',
+    HEYGEN_AVATAR_OFFSET_X:        env.HEYGEN_AVATAR_OFFSET_X        || '0.00',
+    HEYGEN_AVATAR_OFFSET_Y:        env.HEYGEN_AVATAR_OFFSET_Y        || '0.00',
+    HEYGEN_CAPTION:                env.HEYGEN_CAPTION                || 'false',
+    HEYGEN_VIDEO_TITLE:            env.HEYGEN_VIDEO_TITLE            || '',
+    ANTHROPIC_API_KEY:             maskKey(env.ANTHROPIC_API_KEY),
+    ANTHROPIC_MODEL:               env.ANTHROPIC_MODEL               || 'claude-sonnet-4-20250514',
+    META_ACCESS_TOKEN:             maskKey(env.META_ACCESS_TOKEN),
+    INSTAGRAM_ACCOUNT_ID:          env.INSTAGRAM_ACCOUNT_ID          || '',
+    TELEGRAM_BOT_TOKEN:            maskKey(env.TELEGRAM_BOT_TOKEN),
+    TELEGRAM_CHAT_ID:              env.TELEGRAM_CHAT_ID              || '',
+    CRON_SCHEDULE:                 env.CRON_SCHEDULE                 || '30 9 * * 1,3,5',
+    PHOTOS_BASE_PATH:              env.PHOTOS_BASE_PATH              || './assets/photos',
     // flags di presenza (senza mascheratura)
     _has: {
       heygenKey:      !!(env.HEYGEN_API_KEY     && !env.HEYGEN_API_KEY.includes('...')),
@@ -427,6 +449,11 @@ app.post('/api/config', (req, res) => {
   try {
     const allowed = [
       'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE',
+      'HEYGEN_ASPECT_RATIO','HEYGEN_EXPRESSION_INTENSITY','HEYGEN_AVATAR_STYLE','HEYGEN_BG_COLOR',
+      'HEYGEN_VOICE_SPEED','HEYGEN_VOICE_PITCH','HEYGEN_VOICE_EMOTION','HEYGEN_VOICE_LOCALE',
+      'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
+      'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
+      'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE',
       'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
       'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
       'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
