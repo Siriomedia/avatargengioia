@@ -32,6 +32,21 @@ if (DATA_DIR !== __dirname) {
     .forEach(d => { if (!fs.existsSync(d)) fs.mkdirSync(d, { recursive: true }); });
 }
 
+// ─── Config Override ─────────────────────────────────────────────────────────
+// Applica subito config-override.json a process.env (volume Railway /data)
+// Questo garantisce che HEYGEN_ASPECT_RATIO e tutte le altre variabili
+// impostate dalla dashboard siano corrette PRIMA che qualsiasi tool le legga.
+const CONFIG_OVERRIDE_FILE = path.join(DATA_DIR, 'config-override.json');
+if (fs.existsSync(CONFIG_OVERRIDE_FILE)) {
+  try {
+    const _overrides = JSON.parse(fs.readFileSync(CONFIG_OVERRIDE_FILE, 'utf8'));
+    for (const [k, v] of Object.entries(_overrides)) process.env[k] = String(v);
+    console.info(`[config] Override applicato all'avvio: ${Object.keys(_overrides).join(', ')}`);
+  } catch (e) {
+    console.warn(`[config] config-override.json non leggibile: ${e.message}`);
+  }
+}
+
 // ─── Topics Storage ──────────────────────────────────────────────────────────
 const TOPICS_FILE = DATA_DIR !== __dirname
   ? path.join(DATA_DIR, 'topics.json')
@@ -206,19 +221,6 @@ const telegram = startTelegramBot(
  * Al termine di tutti, invia un riepilogo finale.
  */
 async function runPipelineAll() {
-  // ── 0. Applica config-override.json a process.env ─────────────────────────
-  // I valori salvati dalla dashboard (config-override.json) sovrascrivono
-  // le variabili Railway originali, garantendo che aspect_ratio/etc. siano corretti.
-  if (fs.existsSync(CONFIG_OVERRIDE_FILE)) {
-    try {
-      const overrides = JSON.parse(fs.readFileSync(CONFIG_OVERRIDE_FILE, 'utf8'));
-      for (const [k, v] of Object.entries(overrides)) process.env[k] = String(v);
-      logger.info(`Config override applicato: ${Object.keys(overrides).join(', ')}`);
-    } catch (e) {
-      logger.warn(`Config override non leggibile: ${e.message}`);
-    }
-  }
-
   const results = [];
   let processed = 0;
 
@@ -366,7 +368,6 @@ app.delete('/api/topics/:id', (req, res) => {
 // ─── Config API ─────────────────────────────────────────────────────────────
 
 const ENV_FILE            = path.join(__dirname, '.env');
-const CONFIG_OVERRIDE_FILE = path.join(DATA_DIR, 'config-override.json');
 const ENV_KNOWN_KEYS = [
   'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE',
   'HEYGEN_ASPECT_RATIO','HEYGEN_EXPRESSION_INTENSITY','HEYGEN_AVATAR_STYLE','HEYGEN_BG_COLOR',
@@ -410,7 +411,10 @@ function writeEnvFile(vars) {
     const existing = fs.existsSync(CONFIG_OVERRIDE_FILE)
       ? JSON.parse(fs.readFileSync(CONFIG_OVERRIDE_FILE, 'utf8'))
       : {};
-    fs.writeFileSync(CONFIG_OVERRIDE_FILE, JSON.stringify({ ...existing, ...vars }, null, 2));
+    const merged = { ...existing, ...vars };
+    fs.writeFileSync(CONFIG_OVERRIDE_FILE, JSON.stringify(merged, null, 2));
+    // Applica immediatamente a process.env: i tool chiamati dopo usano i valori aggiornati
+    for (const [k, v] of Object.entries(vars)) process.env[k] = String(v);
   } else {
     // In locale: aggiorna .env
     const existing = readEnvFile();
