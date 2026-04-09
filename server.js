@@ -587,6 +587,39 @@ app.get('/api/heygen/voices', async (_req, res) => {
   }
 });
 
+// GET /api/heygen/debug-payload — mostra ESATTAMENTE il JSON che verrebbe inviato a HeyGen
+// senza fare nessuna chiamata API. Utile per verificare che la config sia corretta.
+app.get('/api/heygen/debug-payload', async (_req, res) => {
+  try {
+    const { buildHeygenPayload } = await import('./tools/create-heygen-video.js');
+    const { cfg, payload } = buildHeygenPayload('[testo di prova — 50 caratteri circa per test]');
+    // Maschera API key nel debug output
+    const safeCfg = { ...cfg, apiKey: cfg.apiKey ? cfg.apiKey.slice(0,8) + '••••' : 'MANCANTE' };
+    res.json({
+      ok: true,
+      endpoint: 'POST https://api.heygen.com/v2/videos',
+      process_env: {
+        HEYGEN_AVATAR_ID:      process.env.HEYGEN_AVATAR_ID,
+        HEYGEN_VOICE_ID:       process.env.HEYGEN_VOICE_ID,
+        HEYGEN_MOTION_ENGINE:  process.env.HEYGEN_MOTION_ENGINE,
+        HEYGEN_ASPECT_RATIO:   process.env.HEYGEN_ASPECT_RATIO,
+        HEYGEN_RESOLUTION:     process.env.HEYGEN_RESOLUTION,
+        HEYGEN_EXPRESSIVENESS: process.env.HEYGEN_EXPRESSIVENESS,
+        HEYGEN_VOICE_EMOTION:  process.env.HEYGEN_VOICE_EMOTION,
+        HEYGEN_VOICE_LOCALE:   process.env.HEYGEN_VOICE_LOCALE,
+        HEYGEN_TEST_MODE:      process.env.HEYGEN_TEST_MODE,
+        HEYGEN_BG_TYPE:        process.env.HEYGEN_BG_TYPE,
+        HEYGEN_BG_COLOR:       process.env.HEYGEN_BG_COLOR,
+        HEYGEN_CAPTION:        process.env.HEYGEN_CAPTION,
+      },
+      config_parsed: safeCfg,
+      payload_json: payload,
+    });
+  } catch(err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // ─── Wizard API ─────────────────────────────────────────────────────────────
 
 const WIZARD_SYSTEM_PROMPT = `Sei un esperto stratega di contenuti video per social media.
