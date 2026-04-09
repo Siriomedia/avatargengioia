@@ -12,29 +12,35 @@ const __dirname   = path.dirname(fileURLToPath(import.meta.url));
 const projectDir  = path.join(__dirname, '..');
 // Rispetta DATA_DIR come server.js (volume Railway o cartella locale)
 const DATA_DIR    = process.env.DATA_DIR || null;
-const TOPICS_FILE = DATA_DIR
+const DEFAULT_TOPICS_FILE = DATA_DIR
   ? path.join(DATA_DIR, 'topics.json')
   : path.join(projectDir, 'config', 'topics.json');
 
-function readTopics() {
-  if (!fs.existsSync(TOPICS_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(TOPICS_FILE, 'utf8')); }
+function readTopicsFromFile(topicsFile) {
+  if (!fs.existsSync(topicsFile)) return [];
+  try { return JSON.parse(fs.readFileSync(topicsFile, 'utf8')); }
   catch { return []; }
 }
 
-function saveTopics(topics) {
-  fs.writeFileSync(TOPICS_FILE, JSON.stringify(topics, null, 2));
+function saveTopicsToFile(topicsFile, topics) {
+  fs.writeFileSync(topicsFile, JSON.stringify(topics, null, 2));
 }
 
-export async function selectTopic() {
-  const topics = readTopics();
+/**
+ * Seleziona il primo topic pending e lo marca in-progress.
+ * @param {string|null} topicsFilePath - Percorso opzionale al file topics (multi-user).
+ *                                       Se null usa il percorso predefinito (DATA_DIR).
+ */
+export async function selectTopic(topicsFilePath = null) {
+  const tFile  = topicsFilePath || DEFAULT_TOPICS_FILE;
+  const topics = readTopicsFromFile(tFile);
 
   const item = topics.find(t => t.status === 'pending');
   if (!item) return null;
 
   // Marca come in-progress: impedisce una doppia esecuzione
   item.status = 'in-progress';
-  saveTopics(topics);
+  saveTopicsToFile(tFile, topics);
 
   return { ...item };
 }
