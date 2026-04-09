@@ -396,16 +396,37 @@ app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email e password obbligatori' });
   const users = readUsers();
-  const user  = users.find(u => u.email === email && u.active !== false);
+  const user  = users.find(u => u.email === email);
   if (!user) return res.status(401).json({ error: 'Credenziali non valide' });
   const ok = await bcrypt.compare(password, user.passwordHash);
   if (!ok) return res.status(401).json({ error: 'Credenziali non valide' });
+  if (user.active === false) return res.status(403).json({ error: 'Account disabilitato. Contatta l\'amministratore.' });
+  if (user.approved === false) return res.status(403).json({ error: 'pending', message: 'Registrazione in attesa di approvazione. Riceverai una conferma a breve.' });
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role, name: user.name },
     JWT_SECRET, { expiresIn: '7d' }
   );
   logger.info(`Login: ${email} [${user.role}]`);
   res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role, plan: user.plan } });
+});
+
+app.post('/api/auth/register', async (req, res) => {
+  const { name, email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Email e password obbligatori' });
+  if (password.length < 8) return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri' });
+  const users = readUsers();
+  if (users.some(u => u.email === email)) return res.status(409).json({ error: 'Email già registrata' });
+  const hash = await bcrypt.hash(password, 10);
+  const user = {
+    id: randomUUID(), email, name: name?.trim() || email,
+    passwordHash: hash, role: 'user', plan: 'basic',
+    active: true, approved: false, createdAt: new Date().toISOString(),
+  };
+  users.push(user);
+  writeUsers(users);
+  fs.mkdirSync(getUserDir(user.id), { recursive: true });
+  logger.info(`Nuova registrazione in attesa di approvazione: ${email}`);
+  res.json({ ok: true, message: 'Registrazione inviata! Attendi l\'approvazione dell\'amministratore.' });
 });
 
 app.get('/api/auth/me', requireAuth, (req, res) => {
@@ -482,6 +503,24 @@ app.patch('/api/admin/users/:id/config', requireAuth, requireAdmin, (req, res) =
 
 app.get('/api/admin/users/:id/topics', requireAuth, requireAdmin, (req, res) => {
   res.json(readUserTopics(req.params.id));
+});
+
+app.post('/api/admin/users/:id/approve', requireAuth, requireAdmin, (req, res) => {
+  const users = readUsers();
+  const idx   = users.findIndex(u => u.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Utente non trovato' });
+  users[idx].approved = true;
+  users[idx].active   = true;
+  writeUsers(users);
+  logger.info(`Admin: approvato utente ${users[idx].email}`);
+  res.json({ ok: true });
+});
+
+app.post('/api/admin/users/:id/reject', requireAuth, requireAdmin, (req, res) => {
+  const users = readUsers().filter(u => u.id !== req.params.id);
+  writeUsers(users);
+  logger.info(`Admin: rifiutato e rimosso utente ${req.params.id}`);
+  res.json({ ok: true });
 });
 
 // ─── Topics API ─────────────────────────────────────────────────────────────

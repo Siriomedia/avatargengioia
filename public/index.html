@@ -2235,6 +2235,78 @@
   function setToken(t)  { localStorage.setItem(TOKEN_KEY, t); }
   function clearToken() { localStorage.removeItem(TOKEN_KEY); }
 
+  function toggleAuthForm(mode) {
+    document.getElementById('login-form').style.display    = mode === 'login'    ? '' : 'none';
+    document.getElementById('register-form').style.display = mode === 'register' ? '' : 'none';
+    document.getElementById('pending-form').style.display  = mode === 'pending'  ? '' : 'none';
+    document.getElementById('login-error') && (document.getElementById('login-error').textContent = '');
+    document.getElementById('reg-error')   && (document.getElementById('reg-error').textContent = '');
+  }
+
+  async function doRegister() {
+    const name  = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const pass  = document.getElementById('reg-pass').value;
+    const pass2 = document.getElementById('reg-pass2').value;
+    const errEl = document.getElementById('reg-error');
+    const btn   = document.getElementById('register-form').querySelector('.login-btn');
+    errEl.textContent = '';
+    if (!email || !pass) { errEl.textContent = 'Email e password obbligatori'; return; }
+    if (pass.length < 8) { errEl.textContent = 'La password deve avere almeno 8 caratteri'; return; }
+    if (pass !== pass2)  { errEl.textContent = 'Le password non coincidono'; return; }
+    btn.disabled = true; btn.textContent = 'Invio in corso…';
+    try {
+      const res  = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password: pass }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore registrazione');
+      toggleAuthForm('pending');
+    } catch (err) {
+      errEl.textContent = err.message;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Registrati';
+    }
+  }
+
+  function toggleAuthForm(mode) {
+    document.getElementById('login-form').style.display    = (mode === 'login')    ? '' : 'none';
+    document.getElementById('register-form').style.display = (mode === 'register') ? '' : 'none';
+    document.getElementById('pending-form').style.display  = (mode === 'pending')  ? '' : 'none';
+    if (document.getElementById('login-error'))  document.getElementById('login-error').textContent = '';
+    if (document.getElementById('reg-error'))    document.getElementById('reg-error').textContent   = '';
+  }
+
+  async function doRegister() {
+    const name  = document.getElementById('reg-name').value.trim();
+    const email = document.getElementById('reg-email').value.trim();
+    const pass  = document.getElementById('reg-pass').value;
+    const pass2 = document.getElementById('reg-pass2').value;
+    const errEl = document.getElementById('reg-error');
+    const btn   = document.getElementById('register-form').querySelector('.login-btn');
+    errEl.textContent = '';
+    if (!email || !pass)  { errEl.textContent = 'Email e password obbligatori'; return; }
+    if (pass.length < 8)  { errEl.textContent = 'La password deve avere almeno 8 caratteri'; return; }
+    if (pass !== pass2)   { errEl.textContent = 'Le password non coincidono'; return; }
+    btn.disabled = true; btn.textContent = 'Invio in corso…';
+    try {
+      const res  = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password: pass }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Errore registrazione');
+      toggleAuthForm('pending');
+    } catch (err) {
+      errEl.textContent = err.message;
+    } finally {
+      btn.disabled = false; btn.textContent = 'Registrati';
+    }
+  }
+
   function logout() {
     clearToken();
     currentUser = null;
@@ -2276,7 +2348,10 @@
         body: JSON.stringify({ email, password: pass }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Credenziali non valide');
+      if (!res.ok) {
+        if (data.error === 'pending') { toggleAuthForm('pending'); return; }
+        throw new Error(data.error || 'Credenziali non valide');
+      }
       setToken(data.token);
       currentUser = data.user;
       document.getElementById('login-overlay').classList.add('hidden');
@@ -2339,9 +2414,13 @@
     return _impersonating ? { 'X-As-User': _impersonating } : {};
   }
 
-  // Intercetta Enter nel form di login
+  // Intercetta Enter nei form login/registrazione
   document.getElementById('login-email').addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('login-pass').focus());
   document.getElementById('login-pass').addEventListener('keydown',  e => e.key === 'Enter' && doLogin());
+  document.getElementById('reg-name').addEventListener('keydown',    e => e.key === 'Enter' && document.getElementById('reg-email').focus());
+  document.getElementById('reg-email').addEventListener('keydown',   e => e.key === 'Enter' && document.getElementById('reg-pass').focus());
+  document.getElementById('reg-pass').addEventListener('keydown',    e => e.key === 'Enter' && document.getElementById('reg-pass2').focus());
+  document.getElementById('reg-pass2').addEventListener('keydown',   e => e.key === 'Enter' && doRegister());
 
   // Boot — controlla JWT, altrimenti mostra login
   (async () => {
@@ -3198,20 +3277,38 @@
         tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:24px">Nessun utente</td></tr>';
         return;
       }
-      tbody.innerHTML = list.map(u => `
-        <tr>
+      tbody.innerHTML = list.map(u => {
+        const isPending = u.approved === false;
+        return `
+        <tr style="${isPending ? 'background:rgba(224,152,32,.06)' : ''}">
           <td style="font-weight:600">${escHtml(u.name || '')}</td>
           <td>${escHtml(u.email)}</td>
           <td><span class="admin-role-${u.role}">${u.role.toUpperCase()}</span></td>
-          <td><span class="admin-badge-${u.active !== false ? 'active' : 'inactive'}">${u.active !== false ? 'Attivo' : 'Inattivo'}</span></td>
+          <td>
+            ${isPending
+              ? '<span style="background:rgba(224,152,32,.15);color:#c87700;padding:2px 9px;border-radius:20px;font-size:11px;font-weight:700;border:1px solid rgba(224,152,32,.35)">⏳ In attesa</span>'
+              : `<span class="admin-badge-${u.active !== false ? 'active' : 'inactive'}">${u.active !== false ? 'Attivo' : 'Inattivo'}</span>`
+            }
+          </td>
           <td style="color:var(--text2);font-size:11.5px">${u.plan || 'basic'}</td>
           <td class="admin-actions">
-            <button class="admin-btn" onclick="openEditUser('${u.id}')">Modifica</button>
-            <button class="admin-btn" onclick="adminImpersonate('${escHtml(u.id)}','${escHtml(u.email)}')">Vedi come</button>
-            ${u.role !== 'admin' ? `<button class="admin-btn danger" onclick="deleteUser('${u.id}')">Elimina</button>` : ''}
+            ${isPending
+              ? `<button class="admin-btn primary" onclick="approveUser('${u.id}')">✓ Approva</button>
+                 <button class="admin-btn danger" onclick="rejectUser('${u.id}', '${escHtml(u.email)}')">&#10005; Rifiuta</button>`
+              : `<button class="admin-btn" onclick="openEditUser('${u.id}')">Modifica</button>
+                 <button class="admin-btn" onclick="adminImpersonate('${escHtml(u.id)}','${escHtml(u.email)}')">Vedi come</button>
+                 ${u.role !== 'admin' ? `<button class="admin-btn danger" onclick="deleteUser('${u.id}')">Elimina</button>` : ''}`
+            }
           </td>
-        </tr>
-      `).join('');
+        </tr>`;
+      }).join('');
+
+      // Badge pending nel tab admin
+      const pendingCount = list.filter(u => u.approved === false).length;
+      const tabBtn = document.getElementById('tab-btn-admin');
+      if (tabBtn) tabBtn.innerHTML = pendingCount > 0
+        ? `👥 Utenti <span style="background:#d63b3b;color:#fff;padding:1px 7px;border-radius:20px;font-size:10px;font-weight:700;margin-left:4px">${pendingCount}</span>`
+        : '👥 Utenti';
     } catch(e) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--red);padding:24px">${escHtml(e.message)}</td></tr>`;
     }
@@ -3272,6 +3369,36 @@
       closeAdminModal();
       loadAdminUsers();
     } catch(e) { alert(e.message); }
+  }
+
+  async function approveUser(id) {
+    const res = await authFetch(`/api/admin/users/${id}/approve`, { method: 'POST' });
+    const d   = await res.json();
+    if (!res.ok) { alert(d.error || 'Errore'); return; }
+    loadAdminUsers();
+  }
+
+  async function rejectUser(id, email) {
+    if (!confirm(`Rifiutare e rimuovere la richiesta di ${email}?`)) return;
+    const res = await authFetch(`/api/admin/users/${id}/reject`, { method: 'POST' });
+    const d   = await res.json();
+    if (!res.ok) { alert(d.error || 'Errore'); return; }
+    loadAdminUsers();
+  }
+
+  async function approveUser(id) {
+    const res = await authFetch(`/api/admin/users/${id}/approve`, { method: 'POST' });
+    const d   = await res.json();
+    if (!res.ok) { alert(d.error || 'Errore'); return; }
+    loadAdminUsers();
+  }
+
+  async function rejectUser(id, email) {
+    if (!confirm(`Rifiutare e rimuovere la richiesta di ${email}?`)) return;
+    const res = await authFetch(`/api/admin/users/${id}/reject`, { method: 'POST' });
+    const d   = await res.json();
+    if (!res.ok) { alert(d.error || 'Errore'); return; }
+    loadAdminUsers();
   }
 
   async function deleteUser(id) {
