@@ -1158,10 +1158,11 @@
 
   <!-- ── Tab Navigation ─────────────────────────────────────────────── -->
   <nav class="tabs">
-    <button class="tab-btn active" onclick="switchTab('pipeline', this)">🎬 Pipeline</button>
-    <button class="tab-btn" onclick="switchTab('topics', this)">📋 Gestione Topic</button>
-    <button class="tab-btn" onclick="switchTab('wizard', this)">🪄 Genera Excel</button>
-    <button class="tab-btn" onclick="switchTab('config', this)">⚙️ Configurazioni</button>
+    <button id="tab-btn-pipeline" class="tab-btn active" data-section="pipeline" onclick="switchTab('pipeline', this)">🎬 Pipeline</button>
+    <button id="tab-btn-topics"   class="tab-btn" data-section="topics"   onclick="switchTab('topics', this)">📋 Gestione Topic</button>
+    <button id="tab-btn-wizard"   class="tab-btn" data-section="wizard"   onclick="switchTab('wizard', this)">🪄 Genera Excel</button>
+    <button id="tab-btn-config"   class="tab-btn" data-section="config"   onclick="switchTab('config', this)">⚙️ Configurazioni</button>
+    <button id="tab-btn-admin"    class="tab-btn hidden" onclick="switchTab('admin', this)">👥 Utenti</button>
   </nav>
 
   <!-- ══ TAB: PIPELINE ════════════════════════════════════════════════ -->
@@ -2000,6 +2001,22 @@
           <option value="unlimited">Unlimited</option>
         </select>
       </div>
+      <div class="admin-modal-field">
+        <label>Stato Account</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)">
+          <input type="checkbox" id="admin-form-active" style="width:auto;cursor:pointer" />
+          Utente abilitato (può accedere)
+        </label>
+      </div>
+      <div class="admin-modal-field" id="admin-sections-field">
+        <label>Sezioni Abilitate</label>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;padding:6px 0">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)"><input type="checkbox" class="admin-section-cb" value="pipeline" style="cursor:pointer" /> 🎬 Pipeline</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)"><input type="checkbox" class="admin-section-cb" value="topics"   style="cursor:pointer" /> 📋 Topics</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)"><input type="checkbox" class="admin-section-cb" value="wizard"   style="cursor:pointer" /> 🪄 Wizard</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)"><input type="checkbox" class="admin-section-cb" value="config"   style="cursor:pointer" /> ⚙️ Config</label>
+        </div>
+      </div>
       <div class="admin-modal-actions">
         <button class="admin-btn" onclick="closeAdminModal()">Annulla</button>
         <button class="admin-btn primary" onclick="saveAdminUser()">Salva</button>
@@ -2401,6 +2418,27 @@
     if (currentUser.role === 'admin') {
       document.getElementById('tab-btn-admin')?.classList.remove('hidden');
     }
+    applyUserSections();
+  }
+
+  // Show/hide tabs based on user's allowed sections
+  function applyUserSections() {
+    if (!currentUser) return;
+    if (currentUser.role === 'admin') return; // admin sees all tabs
+    const allSections = ['pipeline','topics','wizard','config'];
+    const allowed = currentUser.sections || allSections;
+    allSections.forEach(section => {
+      const btn = document.getElementById('tab-btn-' + section);
+      if (!btn) return;
+      const isAllowed = allowed.includes(section);
+      btn.classList.toggle('hidden', !isAllowed);
+    });
+    // If the currently active tab is now hidden, switch to first allowed
+    const activeBtn = document.querySelector('.tab-btn.active:not(.hidden)');
+    if (!activeBtn) {
+      const firstAllowedBtn = document.querySelector('.tab-btn:not(.hidden):not(#tab-btn-admin)');
+      if (firstAllowedBtn) firstAllowedBtn.click();
+    }
   }
 
   function onLoggedIn() {
@@ -2421,6 +2459,11 @@
   document.getElementById('reg-email').addEventListener('keydown',   e => e.key === 'Enter' && document.getElementById('reg-pass').focus());
   document.getElementById('reg-pass').addEventListener('keydown',    e => e.key === 'Enter' && document.getElementById('reg-pass2').focus());
   document.getElementById('reg-pass2').addEventListener('keydown',   e => e.key === 'Enter' && doRegister());
+
+  // Hide sections field when role is set to admin
+  document.getElementById('admin-form-role').addEventListener('change', e => {
+    document.getElementById('admin-sections-field').style.display = e.target.value === 'admin' ? 'none' : '';
+  });
 
   // Boot — controlla JWT, altrimenti mostra login
   (async () => {
@@ -3296,6 +3339,11 @@
               ? `<button class="admin-btn primary" onclick="approveUser('${u.id}')">✓ Approva</button>
                  <button class="admin-btn danger" onclick="rejectUser('${u.id}', '${escHtml(u.email)}')">&#10005; Rifiuta</button>`
               : `<button class="admin-btn" onclick="openEditUser('${u.id}')">Modifica</button>
+                 ${u.role !== 'admin'
+                   ? `<button class="admin-btn ${u.active !== false ? 'danger' : 'primary'}" onclick="toggleUserActive('${u.id}')">
+                        ${u.active !== false ? '⏸ Disabilita' : '▶ Abilita'}
+                      </button>`
+                   : ''}
                  <button class="admin-btn" onclick="adminImpersonate('${escHtml(u.id)}','${escHtml(u.email)}')">Vedi come</button>
                  ${u.role !== 'admin' ? `<button class="admin-btn danger" onclick="deleteUser('${u.id}')">Elimina</button>` : ''}`
             }
@@ -3323,6 +3371,9 @@
     document.getElementById('admin-form-password').value = '';
     document.getElementById('admin-form-role').value = 'user';
     document.getElementById('admin-form-plan').value = 'basic';
+    document.getElementById('admin-form-active').checked = true;
+    document.querySelectorAll('.admin-section-cb').forEach(cb => cb.checked = true);
+    document.getElementById('admin-sections-field').style.display = '';
     document.getElementById('admin-modal-bg').style.display = 'flex';
     document.getElementById('admin-form-name').focus();
   }
@@ -3339,6 +3390,14 @@
     document.getElementById('admin-form-password').value = '';
     document.getElementById('admin-form-role').value  = u.role  || 'user';
     document.getElementById('admin-form-plan').value  = u.plan  || 'basic';
+    document.getElementById('admin-form-active').checked = u.active !== false;
+    const allSections = ['pipeline','topics','wizard','config'];
+    const userSections = u.sections || allSections;
+    document.querySelectorAll('.admin-section-cb').forEach(cb => {
+      cb.checked = userSections.includes(cb.value);
+    });
+    // hide sections for admins (they always have all)
+    document.getElementById('admin-sections-field').style.display = u.role === 'admin' ? 'none' : '';
     document.getElementById('admin-modal-bg').style.display = 'flex';
   }
 
@@ -3348,13 +3407,18 @@
   }
 
   async function saveAdminUser() {
+    const role = document.getElementById('admin-form-role').value;
     const body = {
       name:     document.getElementById('admin-form-name').value.trim(),
       email:    document.getElementById('admin-form-email').value.trim(),
       password: document.getElementById('admin-form-password').value,
-      role:     document.getElementById('admin-form-role').value,
+      role,
       plan:     document.getElementById('admin-form-plan').value,
+      active:   document.getElementById('admin-form-active').checked,
     };
+    if (role !== 'admin') {
+      body.sections = [...document.querySelectorAll('.admin-section-cb:checked')].map(cb => cb.value);
+    }
     if (!body.name) delete body.name;
     if (!body.password) delete body.password;
     try {
@@ -3404,6 +3468,13 @@
   async function deleteUser(id) {
     if (!confirm('Eliminare questo utente? L\'azione non è reversibile.')) return;
     const res = await authFetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+    const d   = await res.json();
+    if (!res.ok) { alert(d.error || 'Errore'); return; }
+    loadAdminUsers();
+  }
+
+  async function toggleUserActive(id) {
+    const res = await authFetch(`/api/admin/users/${id}/toggle-active`, { method: 'POST' });
     const d   = await res.json();
     if (!res.ok) { alert(d.error || 'Errore'); return; }
     loadAdminUsers();

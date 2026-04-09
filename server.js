@@ -113,7 +113,9 @@ async function bootstrapAdmin() {
   const password = process.env.ADMIN_PASSWORD || 'Admin1234!';
   const hash     = await bcrypt.hash(password, 10);
   const admin = { id: randomUUID(), email, name: 'Admin', passwordHash: hash,
-                  role: 'admin', plan: 'unlimited', active: true, createdAt: new Date().toISOString() };
+                  role: 'admin', plan: 'unlimited', active: true, approved: true,
+                  sections: ['pipeline','topics','wizard','config'],
+                  createdAt: new Date().toISOString() };
   users.push(admin);
   writeUsers(users);
   // Migra config .env esistente al profilo admin
@@ -458,13 +460,15 @@ app.get('/api/admin/users', requireAuth, requireAdmin, (_req, res) => {
 });
 
 app.post('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
-  const { email, name, password, role = 'user', plan = 'basic' } = req.body;
+  const { email, name, password, role = 'user', plan = 'basic',
+          sections = ['pipeline','topics','wizard','config'] } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'email e password obbligatori' });
   const users = readUsers();
   if (users.some(u => u.email === email)) return res.status(409).json({ error: 'Email già registrata' });
   const hash = await bcrypt.hash(password, 10);
   const user = { id: randomUUID(), email, name: name || email, passwordHash: hash,
-                 role, plan, active: true, createdAt: new Date().toISOString() };
+                 role, plan, active: true, approved: true, sections,
+                 createdAt: new Date().toISOString() };
   users.push(user);
   writeUsers(users);
   fs.mkdirSync(getUserDir(user.id), { recursive: true });
@@ -490,6 +494,18 @@ app.delete('/api/admin/users/:id', requireAuth, requireAdmin, (req, res) => {
   const users = readUsers().filter(u => u.id !== req.params.id);
   writeUsers(users);
   res.json({ ok: true });
+});
+
+app.post('/api/admin/users/:id/toggle-active', requireAuth, requireAdmin, (req, res) => {
+  if (req.params.id === req.user.id) return res.status(400).json({ error: 'Non puoi disabilitare te stesso' });
+  const users = readUsers();
+  const idx   = users.findIndex(u => u.id === req.params.id);
+  if (idx < 0) return res.status(404).json({ error: 'Utente non trovato' });
+  if (users[idx].role === 'admin') return res.status(400).json({ error: 'Non puoi disabilitare un admin' });
+  users[idx].active = users[idx].active === false ? true : false;
+  writeUsers(users);
+  logger.info(`Admin: ${users[idx].active ? 'abilitato' : 'disabilitato'} utente ${users[idx].email}`);
+  res.json({ ok: true, active: users[idx].active });
 });
 
 app.get('/api/admin/users/:id/config', requireAuth, requireAdmin, (req, res) => {
