@@ -525,6 +525,9 @@ app.delete('/api/admin/users/:id', requireAuth, requireAdmin, async (req, res) =
   if (req.params.id === req.user.id) return res.status(400).json({ error: 'Non puoi eliminare te stesso' });
   const users = (await readUsers()).filter(u => u.id !== req.params.id);
   await writeUsers(users);
+  // Rimuovi i file dell'utente (topics + config locali)
+  const dir = getUserDir(req.params.id);
+  if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
   res.json({ ok: true });
 });
 
@@ -551,6 +554,14 @@ app.patch('/api/admin/users/:id/config', requireAuth, requireAdmin, async (req, 
 
 app.get('/api/admin/users/:id/topics', requireAuth, requireAdmin, async (req, res) => {
   res.json(await readUserTopics(req.params.id));
+});
+
+app.put('/api/admin/users/:id/topics', requireAuth, requireAdmin, async (req, res) => {
+  const { topics } = req.body;
+  if (!Array.isArray(topics)) return res.status(400).json({ error: 'topics deve essere un array' });
+  await writeUserTopics(req.params.id, topics);
+  logger.info(`Admin: topics aggiornati per utente ${req.params.id} (${topics.length} voci)`);
+  res.json({ ok: true, count: topics.length });
 });
 
 app.post('/api/admin/users/:id/approve', requireAuth, requireAdmin, async (req, res) => {
@@ -646,6 +657,7 @@ const ENV_KNOWN_KEYS = [
   'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
   'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE','HEYGEN_TEST_MODE',
   'GEMINI_API_KEY','GEMINI_MODEL',
+  'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
   'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
   'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
   'CRON_SCHEDULE','PHOTOS_BASE_PATH',
@@ -747,6 +759,8 @@ app.get('/api/config', requireAuth, async (req, res) => {
     HEYGEN_TEST_MODE:              env.HEYGEN_TEST_MODE              || 'false',
     GEMINI_API_KEY:                maskKey(env.GEMINI_API_KEY),
     GEMINI_MODEL:                  env.GEMINI_MODEL                  || 'gemini-2.0-flash',
+    ANTHROPIC_API_KEY:             maskKey(env.ANTHROPIC_API_KEY),
+    ANTHROPIC_MODEL:               env.ANTHROPIC_MODEL               || 'claude-sonnet-4-20250514',
     META_ACCESS_TOKEN:             maskKey(env.META_ACCESS_TOKEN),
     INSTAGRAM_ACCOUNT_ID:          env.INSTAGRAM_ACCOUNT_ID          || '',
     TELEGRAM_BOT_TOKEN:            maskKey(env.TELEGRAM_BOT_TOKEN),
@@ -757,6 +771,7 @@ app.get('/api/config', requireAuth, async (req, res) => {
     _has: {
       heygenKey:      !!(env.HEYGEN_API_KEY     && !env.HEYGEN_API_KEY.includes('...')),
       geminiKey:      !!(env.GEMINI_API_KEY     && !env.GEMINI_API_KEY.includes('...')),
+      anthropicKey:   !!(env.ANTHROPIC_API_KEY  && !env.ANTHROPIC_API_KEY.includes('...')),
       metaToken:      !!(env.META_ACCESS_TOKEN  && !env.META_ACCESS_TOKEN.includes('...')),
       telegramToken:  !!(env.TELEGRAM_BOT_TOKEN && !env.TELEGRAM_BOT_TOKEN.includes('...')),
     },
@@ -775,6 +790,7 @@ app.post('/api/config', requireAuth, async (req, res) => {
       'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
       'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE','HEYGEN_TEST_MODE',
       'GEMINI_API_KEY','GEMINI_MODEL',
+      'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
       'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
       'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
       'CRON_SCHEDULE','PHOTOS_BASE_PATH',
