@@ -270,6 +270,10 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
   // { [chatId]: { step: 0, answers: {} } }
   const wizardSessions = {};
 
+  // Sessioni di conferma post-wizard: { [chatId]: { tmpPath, topics } }
+  // Attivo tra l'invio della domanda "sì/no" e la risposta dell'utente.
+  const confirmSessions = {};
+
   function isInWizard(id) { return !!wizardSessions[id]; }
 
   function startWizard(id) {
@@ -368,6 +372,9 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
       return;
     }
 
+    // Se c'era una conferma pendente, puliscila silenziosamente
+    delete confirmSessions[id];
+
     startWizard(id);
     bot.sendMessage(id, [
       '📋 <b>Wizard Creazione Topic</b>',
@@ -388,9 +395,13 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
   bot.onText(/\/annulla/, (msg) => {
     if (!isAuthorized(msg)) return;
     const id = msg.chat.id;
+    const hasPendingConfirm = !!confirmSessions[id];
+    delete confirmSessions[id]; // cancella anche eventuale conferma pendente
     if (isInWizard(id)) {
       cancelWizard(id);
       bot.sendMessage(id, '❌ Wizard annullato. Usa /wizard per ricominciare.');
+    } else if (hasPendingConfirm) {
+      bot.sendMessage(id, '❌ Importazione annullata. Usa /wizard per ricominciare.');
     } else {
       bot.sendMessage(id, 'Nessun wizard in corso.');
     }
@@ -465,6 +476,46 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
     const id   = msg.chat.id;
     const text = msg.text.trim();
 
+    // ── Gestione risposta conferma wizard (si/no testuale) ─────────────────
+    if (confirmSessions[id]) {
+      const { tmpPath, topics } = confirmSessions[id];
+      const lower = text.toLowerCase().trim();
+      const isYes = ['si','s\u00ec','s\u00ec','yes','y','ok','certo','vai','avvia','importa'].includes(lower);
+      const isNo  = ['no','n','skip','annulla','cancel','nope'].includes(lower);
+
+      if (isYes) {
+        delete confirmSessions[id];
+        try {
+          const existing = await readT();
+          let nextId = getNextId(existing);
+          const toAdd = topics.map(t => ({ ...t, id: nextId++, status: 'pending' })).filter(t => t.topic);
+          await saveT([...existing, ...toAdd]);
+          if (onImportHistory) await onImportHistory(toAdd, 'telegram-wizard').catch(() => {});
+          logger.info(`Wizard confirm (testo): ${toAdd.length} topic importati`);
+          bot.sendMessage(id, [
+            `\u2705 <b>${toAdd.length} topic importati!</b>`,
+            '',
+            '\ud83d\ude80 Avvio la pipeline...',
+          ].join('\n'), { parse_mode: 'HTML' });
+          const state = getState();
+          if (state.status !== 'running') onRunPipeline();
+        } catch (err) {
+          bot.sendMessage(id, `\u274c Errore importazione: ${err.message}`);
+        }
+        return;
+      }
+
+      if (isNo) {
+        delete confirmSessions[id];
+        bot.sendMessage(id, '\ud83d\udc4d Ok! Puoi importare il file Excel manualmente dalla dashboard.\nUsa /run quando sei pronto.');
+        return;
+      }
+
+      // Risposta non riconosciuta — rimanda la domanda
+      bot.sendMessage(id, '\u2753 Rispondi <b>s\u00ec</b> per importare e avviare, oppure <b>no</b> per tenere solo il file Excel.', { parse_mode: 'HTML' });
+      return;
+    }
+
     // ── Gestione risposta wizard ──────────────────────────────────────────
     if (isInWizard(id)) {
       const session = wizardSessions[id];
@@ -536,17 +587,20 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
 
           // Chiedi se importare e avviare subito
           await bot.sendMessage(id,
-            '🚀 Vuoi importare questi topic nella pipeline e avviarla subito?\nRispondi <b>sì</b> o <b>no</b>.',
+            '🚀 Vuoi importare questi topic nella pipeline e avviarla subito?\nRispondi <b>s\u00ec</b> o <b>no</b> (oppure usa i bottoni).',
             {
               parse_mode: 'HTML',
               reply_markup: {
                 inline_keyboard: [[
-                  { text: '✅ Sì, importa e avvia', callback_data: `wizard_import:${tmpPath}` },
-                  { text: '❌ No, solo Excel', callback_data: 'wizard_skip' },
+                  { text: '\u2705 S\u00ec, importa e avvia', callback_data: `wizard_import:${tmpPath}` },
+                  { text: '\u274c No, solo Excel', callback_data: 'wizard_skip' },
                 ]],
               },
             }
           );
+
+          // Salva sessione di conferma per gestire risposta testuale
+          confirmSessions[id] = { tmpPath, topics };
 
           // Cleanup file dopo 10 minuti
           setTimeout(() => { try { fs.unlinkSync(tmpPath); } catch {} }, 10 * 60 * 1000);
@@ -623,6 +677,7 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
     const data = query.data;
 
     bot.answerCallbackQuery(query.id);
+    delete confirmSessions[id]; // pulisce eventuale sessione di conferma testuale
 
     if (data.startsWith('wizard_import:')) {
       const tmpPath = data.replace('wizard_import:', '');
