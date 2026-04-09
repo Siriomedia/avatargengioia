@@ -1215,7 +1215,7 @@
               <div class="step-icon">2</div>
               <div class="step-info">
                 <div class="step-name">Genera Script</div>
-                <div class="step-detail">Claude AI</div>
+                <div class="step-detail">Gemini AI</div>
               </div>
             </li>
             <li class="step" data-step="Video HeyGen">
@@ -1254,7 +1254,7 @@
             <span id="k-heygen" class="tag tag-wrn">—</span>
           </div>
           <div class="cfg-item">
-            <span class="cfg-key">Anthropic (Claude)</span>
+            <span class="cfg-key">Gemini (Google AI)</span>
             <span id="k-anthropic" class="tag tag-wrn">—</span>
           </div>
           <div class="cfg-item">
@@ -1343,8 +1343,8 @@
             </div>
 
             <div class="format-col" style="border-color:rgba(26,111,223,.35);background:rgba(26,111,223,.04)">
-              <div class="format-col-name">parlato &nbsp;<span style="font-size:10px;font-weight:400;color:var(--text2);font-family:sans-serif">— opzionale, bypassa Claude</span></div>
-              <div class="format-col-desc">Testo parlato completo già scritto da te. Se compilato, <strong style="color:var(--accent)">Claude non viene chiamato</strong> e questo testo viene passato direttamente a HeyGen. Se vuoto, Claude genera il testo automaticamente.</div>
+              <div class="format-col-name">parlato &nbsp;<span style="font-size:10px;font-weight:400;color:var(--text2);font-family:sans-serif">— opzionale, bypassa Gemini</span></div>
+              <div class="format-col-desc">Testo parlato completo già scritto da te. Se compilato, <strong style="color:var(--accent)">Gemini non viene chiamato</strong> e questo testo viene passato direttamente a HeyGen. Se vuoto, Gemini genera il testo automaticamente.</div>
               <div class="format-col-example">es. &ldquo;Nel 2025 il 40% dei lavori è già parzialmente automatizzato. Ma l\'AI non sostituisce le persone: potenzia chi la usa. Inizia oggi, anche con 10 minuti al giorno.&rdquo;</div>
               <div style="margin-top:6px;font-size:10.5px;color:var(--text3)">⏱ 80&ndash;120 parole &middot; 30&ndash;45 secondi &middot; termina sempre con la CTA fissa</div>
             </div>
@@ -1433,7 +1433,7 @@
     <div class="wiz-wrap">
       <div style="margin-bottom:32px">
         <h2 style="font-size:26px;font-weight:800;color:var(--text)">🪄 Genera Excel Topic</h2>
-        <p style="color:var(--text2);margin-top:6px">Rispondi a 10 domande — Claude AI genererà i tuoi topic pronti per l'importazione.</p>
+        <p style="color:var(--text2);margin-top:6px">Rispondi a 10 domande — Gemini AI genererà i tuoi topic pronti per l'importazione.</p>
       </div>
 
       <!-- Progress dots -->
@@ -1770,38 +1770,37 @@
         </div>
       </div>
 
-      <!-- ── Anthropic (Claude) ──────────────────────────────────────── -->
+      <!-- ── Gemini (Google AI) ─────────────────────────────────────── -->
       <div class="cfg-section">
         <div class="cfg-section-head">
           <span class="cfg-section-icon">🧠</span>
           <div>
-            <div class="cfg-section-title">Anthropic (Claude)</div>
-            <div class="cfg-section-subtitle">Generazione script AI · console.anthropic.com</div>
+            <div class="cfg-section-title">Gemini (Google AI)</div>
+            <div class="cfg-section-subtitle">Generazione script AI · aistudio.google.com</div>
           </div>
           <span id="badge-anthropic" class="cfg-section-badge tag tag-wrn">—</span>
         </div>
         <div class="cfg-section-body">
           <div class="cfg-field">
             <label class="cfg-label">API Key <span class="req">*</span></label>
-            <div class="cfg-desc">Trovabile su <strong>console.anthropic.com → API Keys</strong>. Usata per generare il testo parlato da Claude quando il campo <em>parlato</em> è vuoto nel topic.</div>
+            <div class="cfg-desc">Trovabile su <strong>aistudio.google.com → Get API Key</strong>. Usata per generare il testo parlato con Gemini quando il campo <em>parlato</em> è vuoto nel topic.</div>
             <div class="cfg-input-wrap">
-              <input id="cfg-ANTHROPIC_API_KEY" class="cfg-input" type="password" placeholder="sk-ant-••••••••••••••••••" autocomplete="off" />
-              <button class="cfg-eye-btn" onclick="toggleEye('cfg-ANTHROPIC_API_KEY',this)">👁</button>
+              <input id="cfg-GEMINI_API_KEY" class="cfg-input" type="password" placeholder="AIza••••••••••••••••••••••" autocomplete="off" />
+              <button class="cfg-eye-btn" onclick="toggleEye('cfg-GEMINI_API_KEY',this)">👁</button>
             </div>
           </div>
           <div class="cfg-field">
             <label class="cfg-label">Modello <span class="opt">(opzionale)</span></label>
-            <div class="cfg-desc">Modello Claude da usare per la generazione degli script.</div>
-            <select id="cfg-ANTHROPIC_MODEL" class="cfg-input" style="font-family:sans-serif">
-              <option value="claude-sonnet-4-20250514">claude-sonnet-4 (consigliato)</option>
-              <option value="claude-opus-4-5">claude-opus-4.5 (più potente)</option>
-              <option value="claude-haiku-4-5">claude-haiku-4.5 (veloce)</option>
-              <option value="claude-3-7-sonnet-20250219">claude-3.7-sonnet</option>
-              <option value="claude-3-5-sonnet-20241022">claude-3.5-sonnet</option>
+            <div class="cfg-desc">Modello Gemini da usare per la generazione degli script.</div>
+            <select id="cfg-GEMINI_MODEL" class="cfg-input" style="font-family:sans-serif">
+              <option value="gemini-2.0-flash">gemini-2.0-flash (consigliato)</option>
+              <option value="gemini-2.5-flash-preview-04-17">gemini-2.5-flash (più potente)</option>
+              <option value="gemini-1.5-pro">gemini-1.5-pro</option>
+              <option value="gemini-1.5-flash">gemini-1.5-flash (veloce)</option>
             </select>
           </div>
           <div class="cfg-save-row">
-            <button class="cfg-save-btn" onclick="saveSection('anthropic')">💾 Salva Anthropic</button>
+            <button class="cfg-save-btn" onclick="saveSection('anthropic')">💾 Salva Gemini</button>
             <span id="fb-anthropic" class="cfg-feedback empty">—</span>
           </div>
         </div>
@@ -2026,7 +2025,7 @@
     // Keys
     if (s.keys) {
       setKey('k-heygen',    s.keys.heygen);
-      setKey('k-anthropic', s.keys.anthropic);
+      setKey('k-anthropic', s.keys.gemini);
       setKey('k-meta',      s.keys.meta, true);
       setKey('k-topics',    s.keys.topics);
       setKey('k-telegram',  s.keys.telegram, true);
@@ -2404,7 +2403,7 @@
     container.innerHTML = `
       <div class="wiz-card" style="text-align:center;padding:56px 40px">
         <div style="font-size:48px;margin-bottom:16px">🤖</div>
-        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px">Claude sta generando i tuoi topic...</div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);margin-bottom:8px">Gemini sta generando i tuoi topic...</div>
         <div style="color:var(--text2);font-size:14px;margin-bottom:28px">Analisi risposte e creazione contenuti personalizzati</div>
         <div style="display:flex;justify-content:center">
           <div class="wiz-spinner" style="border-color:rgba(26,111,223,.2);border-top-color:var(--accent);width:36px;height:36px;border-width:4px"></div>
@@ -2438,7 +2437,7 @@
       <tr>
         <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.topic}</td>
         <td><span class="tag">${t.pilastro}</span></td>
-        <td style="max-width:180px;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.parlato ? t.parlato.slice(0,60)+'…' : '<em>Claude AI</em>'}</td>
+        <td style="max-width:180px;font-size:12px;color:var(--text2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${t.parlato ? t.parlato.slice(0,60)+'…' : '<em>Gemini AI</em>'}</td>
       </tr>
     `).join('');
     const more = topics.length > 5 ? `<tr><td colspan="3" style="text-align:center;color:var(--text3);font-size:12px;padding:8px">+ altri ${topics.length - 5} topic...</td></tr>` : '';
@@ -2611,7 +2610,7 @@
         <td class="td-small" style="max-width:200px" title="${escHtml(t.parlato||'')}">
           ${(t.parlato||'').trim()
             ? `<span style="color:var(--accent)">✏</span> <span style="color:var(--text2)">${escHtml((t.parlato||'').trim().slice(0,55))}${(t.parlato||'').trim().length>55?'…':''}</span>`
-            : '<span style="color:var(--text3);font-size:10.5px">✦ Claude AI</span>'}
+            : '<span style="color:var(--text3);font-size:10.5px">✦ Gemini AI</span>'}
         </td>
         <td>${STATUS_TAGS[t.status] || escHtml(t.status)}</td>
         <td class="td-actions">
@@ -2724,7 +2723,7 @@
         'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
         'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
         'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE',
-        'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
+        'GEMINI_API_KEY','GEMINI_MODEL',
         'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
         'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
         'CRON_SCHEDULE','PHOTOS_BASE_PATH',
@@ -2768,7 +2767,7 @@
       selectMotionEngine(data.HEYGEN_MOTION_ENGINE || '3');
       // Aggiorna badge
       updateCfgBadge('badge-heygen',    data._has?.heygenKey);
-      updateCfgBadge('badge-anthropic', data._has?.anthropicKey);
+      updateCfgBadge('badge-anthropic', data._has?.geminiKey);
       updateCfgBadge('badge-meta',      data._has?.metaToken,    true);
       updateCfgBadge('badge-telegram',  data._has?.telegramToken, true);
 
@@ -2804,7 +2803,7 @@
       'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
       'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE',
     ],
-    anthropic:['ANTHROPIC_API_KEY','ANTHROPIC_MODEL'],
+    anthropic:['GEMINI_API_KEY','GEMINI_MODEL'],
     meta:     ['META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID'],
     telegram: ['TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID'],
     advanced: ['CRON_SCHEDULE','PHOTOS_BASE_PATH'],

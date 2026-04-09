@@ -12,7 +12,7 @@
  */
 
 import TelegramBot from 'node-telegram-bot-api';
-import Anthropic   from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import fs          from 'fs';
 import path        from 'path';
 import { fileURLToPath } from 'url';
@@ -95,7 +95,7 @@ const WIZARD_QUESTIONS = [
   {
     key:         'parlato',
     label:       'Hai già dei testi scritti da usare?',
-    hint:        'Incollali qui se li hai, altrimenti scrivi "no" e li genera Claude automaticamente',
+    hint:        'Incollali qui se li hai, altrimenti scrivi "no" e li genera Gemini automaticamente',
     required:    false,
     default:     '',
     transform:   v => (v.toLowerCase() === 'no' || v.toLowerCase() === 'n') ? '' : v,
@@ -122,9 +122,9 @@ Per ogni topic produci un oggetto JSON con:
 - "note": breve nota sull'angolazione del video
 REGOLE: topic diversi tra loro, linguaggio adatto al target, rispondi SOLO con array JSON valido.`;
 
-async function generateTopicsWithClaude(answers) {
-  const apiKey = process.env.ANTHROPIC_API_KEY || config.anthropic.apiKey;
-  if (!apiKey) throw new Error('ANTHROPIC_API_KEY mancante');
+async function generateTopicsWithGemini(answers) {
+  const apiKey = process.env.GEMINI_API_KEY || config.gemini?.apiKey;
+  if (!apiKey) throw new Error('GEMINI_API_KEY mancante');
 
   const qty = parseInt(answers.qty) || 5;
   const userMessage = `Questionario compilato:
@@ -140,17 +140,16 @@ async function generateTopicsWithClaude(answers) {
 
 Genera esattamente ${qty} topic diversi.`;
 
-  const client = new Anthropic({ apiKey });
-  const response = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-    max_tokens: 4000,
-    system: WIZARD_SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userMessage }],
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model  = genAI.getGenerativeModel({
+    model:             process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    systemInstruction: WIZARD_SYSTEM_PROMPT,
   });
+  const result = await model.generateContent(userMessage);
+  const text   = result.response.text().trim();
 
-  const text = response.content[0].text.trim();
   const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('Claude non ha restituito JSON valido');
+  if (!jsonMatch) throw new Error('Gemini non ha restituito JSON valido');
 
   const topics = JSON.parse(jsonMatch[0]);
   return topics.slice(0, qty).map((t, i) => ({
@@ -217,25 +216,23 @@ ESEMPIO OUTPUT:
 ]`;
 
 async function parseMessageWithAI(userMessage) {
-  if (!config.anthropic.apiKey) {
-    throw new Error('ANTHROPIC_API_KEY mancante — impossibile analizzare il messaggio');
+  const apiKey = process.env.GEMINI_API_KEY || config.gemini?.apiKey;
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY mancante — impossibile analizzare il messaggio');
   }
 
-  const client = new Anthropic({ apiKey: config.anthropic.apiKey });
-
-  const response = await client.messages.create({
-    model: config.anthropic.model || 'claude-sonnet-4-20250514',
-    max_tokens: 1000,
-    system: PARSE_SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userMessage }],
+  const genAI = new GoogleGenerativeAI(apiKey);
+  const model  = genAI.getGenerativeModel({
+    model:             process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    systemInstruction: PARSE_SYSTEM_PROMPT,
   });
-
-  const text = response.content[0].text.trim();
+  const result = await model.generateContent(userMessage);
+  const text   = result.response.text().trim();
 
   // Estrai JSON dall'output (potrebbe avere backtick markdown)
   const jsonMatch = text.match(/\[[\s\S]*\]/);
   if (!jsonMatch) {
-    throw new Error(`Claude non ha restituito un JSON valido: ${text.slice(0, 200)}`);
+    throw new Error(`Gemini non ha restituito un JSON valido: ${text.slice(0, 200)}`);
   }
 
   return JSON.parse(jsonMatch[0]);
@@ -477,12 +474,12 @@ export function startTelegramBot(onRunPipeline, getState) {
           `🏷 Tipo: ${answers.pilastro || 'misto'}`,
           `👥 Target: ${answers.target || '—'}`,
           '',
-          '🧠 Sto generando i topic con Claude AI...',
+          '🧠 Sto generando i topic con Gemini AI...',
         ].join('\n'), { parse_mode: 'HTML' });
 
         try {
-          // Genera topics con Claude
-          const topics = await generateTopicsWithClaude(answers);
+          // Genera topics con Gemini
+          const topics = await generateTopicsWithGemini(answers);
 
           // Genera Excel
           const xlsxBuffer = generateExcelBuffer(topics);
@@ -544,7 +541,7 @@ export function startTelegramBot(onRunPipeline, getState) {
 
     // ── Messaggio libero → crea topic veloce ─────────────────────────────
     try {
-      bot.sendMessage(id, '🧠 Analizzo il tuo messaggio con Claude AI...');
+      bot.sendMessage(id, '🧠 Analizzo il tuo messaggio con Gemini AI...');
 
       const newTopics = await parseMessageWithAI(text);
       if (!newTopics.length) {

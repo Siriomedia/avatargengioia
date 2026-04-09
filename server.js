@@ -84,7 +84,7 @@ let pipelineState = {
   queue: { total: 0, current: 0, remaining: 0 },
   keys: {
     heygen:    !!config.heygen.apiKey    && !config.heygen.apiKey.includes('...'),
-    anthropic: !!config.anthropic.apiKey && !config.anthropic.apiKey.includes('...'),
+    gemini:    !!config.gemini?.apiKey   && !config.gemini?.apiKey.includes('...'),
     meta:      !!config.meta.accessToken && !config.meta.accessToken.includes('...'),
     topics:    true,
     telegram:  !!config.telegram.token && !config.telegram.token.includes('...'),
@@ -376,7 +376,7 @@ const ENV_KNOWN_KEYS = [
   'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
   'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
   'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE','HEYGEN_TEST_MODE',
-  'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
+  'GEMINI_API_KEY','GEMINI_MODEL',
   'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
   'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
   'CRON_SCHEDULE','PHOTOS_BASE_PATH',
@@ -476,8 +476,8 @@ app.get('/api/config', (_req, res) => {
     HEYGEN_CAPTION:                env.HEYGEN_CAPTION                || 'false',
     HEYGEN_VIDEO_TITLE:            env.HEYGEN_VIDEO_TITLE            || '',
     HEYGEN_TEST_MODE:              env.HEYGEN_TEST_MODE              || 'false',
-    ANTHROPIC_API_KEY:             maskKey(env.ANTHROPIC_API_KEY),
-    ANTHROPIC_MODEL:               env.ANTHROPIC_MODEL               || 'claude-sonnet-4-20250514',
+    GEMINI_API_KEY:                maskKey(env.GEMINI_API_KEY),
+    GEMINI_MODEL:                  env.GEMINI_MODEL                  || 'gemini-2.0-flash',
     META_ACCESS_TOKEN:             maskKey(env.META_ACCESS_TOKEN),
     INSTAGRAM_ACCOUNT_ID:          env.INSTAGRAM_ACCOUNT_ID          || '',
     TELEGRAM_BOT_TOKEN:            maskKey(env.TELEGRAM_BOT_TOKEN),
@@ -487,7 +487,7 @@ app.get('/api/config', (_req, res) => {
     // flags di presenza (senza mascheratura)
     _has: {
       heygenKey:      !!(env.HEYGEN_API_KEY     && !env.HEYGEN_API_KEY.includes('...')),
-      anthropicKey:   !!(env.ANTHROPIC_API_KEY  && !env.ANTHROPIC_API_KEY.includes('...')),
+      geminiKey:      !!(env.GEMINI_API_KEY     && !env.GEMINI_API_KEY.includes('...')),
       metaToken:      !!(env.META_ACCESS_TOKEN  && !env.META_ACCESS_TOKEN.includes('...')),
       telegramToken:  !!(env.TELEGRAM_BOT_TOKEN && !env.TELEGRAM_BOT_TOKEN.includes('...')),
     },
@@ -505,7 +505,7 @@ app.post('/api/config', (req, res) => {
       'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
       'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
       'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE','HEYGEN_TEST_MODE',
-      'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
+      'GEMINI_API_KEY','GEMINI_MODEL',
       'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
       'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
       'CRON_SCHEDULE','PHOTOS_BASE_PATH',
@@ -641,12 +641,12 @@ REGOLE:
 - Adatta il linguaggio al target indicato
 - Rispondi SOLO con un array JSON valido, nessun testo aggiuntivo, nessun markdown`;
 
-// POST /api/wizard/generate — Claude genera i topic dal questionario
+// POST /api/wizard/generate — Gemini genera i topic dal questionario
 app.post('/api/wizard/generate', async (req, res) => {
   try {
     const env    = readEnvFile();
-    const apiKey = env.ANTHROPIC_API_KEY;
-    if (!apiKey) return res.status(400).json({ error: 'ANTHROPIC_API_KEY non configurata' });
+    const apiKey = env.GEMINI_API_KEY;
+    if (!apiKey) return res.status(400).json({ error: 'GEMINI_API_KEY non configurata' });
 
     const answers = req.body;
     const qty     = parseInt(answers.qty) || 5;
@@ -666,18 +666,17 @@ app.post('/api/wizard/generate', async (req, res) => {
 
 Genera esattamente ${qty} topic diversi tra loro sull'argomento indicato.`;
 
-    const { default: Anthropic } = await import('@anthropic-ai/sdk');
-    const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
-      model: env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-      max_tokens: 4000,
-      system: WIZARD_SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: userMessage }],
+    const { GoogleGenerativeAI } = await import('@google/generative-ai');
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model  = genAI.getGenerativeModel({
+      model:             env.GEMINI_MODEL || 'gemini-2.0-flash',
+      systemInstruction: WIZARD_SYSTEM_PROMPT,
     });
+    const result = await model.generateContent(userMessage);
+    const text   = result.response.text().trim();
 
-    const text      = response.content[0].text.trim();
     const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) throw new Error('Claude non ha restituito un JSON valido');
+    if (!jsonMatch) throw new Error('Gemini non ha restituito un JSON valido');
 
     let topics = JSON.parse(jsonMatch[0]);
     // Normalizza e assegna id progressivi
@@ -691,7 +690,7 @@ Genera esattamente ${qty} topic diversi tra loro sull'argomento indicato.`;
       status:   'pending',
     })).filter(t => t.topic);
 
-    logger.info(`Wizard: generati ${topics.length} topic con Claude`);
+    logger.info(`Wizard: generati ${topics.length} topic con Gemini`);
     res.json({ ok: true, count: topics.length, topics });
   } catch (err) {
     logger.error(`Wizard generate: ${err.message}`);

@@ -1,15 +1,13 @@
 /**
- * TEST CLAUDE — Step 1
+ * TEST GEMINI — Step 1
  * Esegui: node tools/test-claude.js
  *
- * Verifica che Claude generi script corretti
+ * Verifica che Gemini generi script corretti
  * con il tono tecnico di AvatarGenGioIA
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import 'dotenv/config';
-
-const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 // System prompt universale — adatto a qualsiasi argomento
 const SYSTEM_PROMPT = `Sei un sistema esperto di generazione script per video brevi (Instagram Reel, TikTok, YouTube Short).
@@ -43,23 +41,22 @@ PILASTRO EDITORIALE: ${pilastro}
 
 Lo script deve essere parlato dall'avatar di AvatarGenGioIA, rivolto direttamente al pubblico target di questo contenuto.`;
 
-  const response = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 400,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userPrompt }],
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model  = genAI.getGenerativeModel({
+    model:             process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    systemInstruction: SYSTEM_PROMPT,
   });
-
-  return response.content[0].text;
+  const result = await model.generateContent(userPrompt);
+  return result.response.text();
 }
 
 async function main() {
   console.log('══════════════════════════════════════');
-  console.log('  AvatarGenGioIA — TEST CLAUDE SCRIPT');
+  console.log('  AvatarGenGioIA — TEST GEMINI SCRIPT');
   console.log('══════════════════════════════════════\n');
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    console.error('❌  ANTHROPIC_API_KEY mancante nel .env');
+  if (!process.env.GEMINI_API_KEY) {
+    console.error('❌  GEMINI_API_KEY mancante nel .env');
     process.exit(1);
   }
 
@@ -74,7 +71,7 @@ async function main() {
     }
   }
 
-  console.log('✅  Test Claude completato.');
+  console.log('✅  Test Gemini completato.');
   console.log('Prossimo step: node tools/test-pipeline.js');
 }
 

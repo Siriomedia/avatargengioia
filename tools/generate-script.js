@@ -1,11 +1,11 @@
 /**
  * GENERATE SCRIPT
  * Se il topic ha già il campo "parlato" compilato nell'Excel,
- * lo usa direttamente (nessuna chiamata Claude).
- * Altrimenti genera lo script con Claude Sonnet.
+ * lo usa direttamente (nessuna chiamata AI).
+ * Altrimenti genera lo script con Google Gemini.
  */
 
-import Anthropic from '@anthropic-ai/sdk';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import 'dotenv/config';
 
 // System prompt universale — adatto a qualsiasi argomento
@@ -38,12 +38,16 @@ export async function generateScript(topic, pilastro, parlato = '') {
     return parlato.trim();
   }
 
-  // ── Caso 2: genera con Claude AI ─────────────────────────────────────────
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error('ANTHROPIC_API_KEY mancante nel .env');
+  // ── Caso 2: genera con Gemini AI ──────────────────────────────────────────
+  if (!process.env.GEMINI_API_KEY) {
+    throw new Error('GEMINI_API_KEY mancante nel .env');
   }
 
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  const model  = genAI.getGenerativeModel({
+    model:             process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    systemInstruction: SYSTEM_PROMPT,
+  });
 
   const userPrompt = `Genera uno script video per questo topic:
 
@@ -52,12 +56,6 @@ PILASTRO EDITORIALE: ${pilastro}
 
 Lo script deve essere parlato dall'avatar, rivolto direttamente al pubblico target di questo contenuto.`;
 
-  const response = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
-    max_tokens: 400,
-    system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
-
-  return response.content[0].text;
+  const result = await model.generateContent(userPrompt);
+  return result.response.text();
 }

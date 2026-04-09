@@ -6,7 +6,7 @@ dotenv.config({ override: true });
 // Valida che le variabili critiche siano presenti
 const required = {
   HEYGEN_API_KEY: process.env.HEYGEN_API_KEY,
-  ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
+  GEMINI_API_KEY: process.env.GEMINI_API_KEY,
 };
 
 const missing = Object.entries(required)
@@ -25,9 +25,9 @@ export const config = {
     motionEngine: process.env.HEYGEN_MOTION_ENGINE || '3',   // '3' = Avatar III (default), '4' = Avatar IV
     baseUrl: 'https://api.heygen.com',
   },
-  anthropic: {
-    apiKey: process.env.ANTHROPIC_API_KEY,
-    model: 'claude-sonnet-4-20250514',
+  gemini: {
+    apiKey: process.env.GEMINI_API_KEY,
+    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
   },
   meta: {
     accessToken: process.env.META_ACCESS_TOKEN,

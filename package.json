@@ -13,8 +13,8 @@
     "test:pipeline": "node tools/test-pipeline.js"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.39.0",
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.9.0",
     "dotenv": "^16.5.0",
     "express": "^4.22.1",
