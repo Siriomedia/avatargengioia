@@ -1,4 +1,7 @@
-import 'dotenv/config';
+// ⚡ Carica .env con override=true → il file .env batte le variabili di sistema/Railway
+// Questo garantisce che la configurazione salvata sia SEMPRE la legge principale
+import dotenv from 'dotenv';
+dotenv.config({ override: true });
 
 // Valida che le variabili critiche siano presenti
 const required = {

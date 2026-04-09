@@ -374,7 +374,7 @@ const ENV_KNOWN_KEYS = [
   'HEYGEN_VOICE_SPEED','HEYGEN_VOICE_PITCH','HEYGEN_VOICE_EMOTION','HEYGEN_VOICE_LOCALE',
   'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
   'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
-  'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE',
+  'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE','HEYGEN_TEST_MODE',
   'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
   'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
   'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
@@ -406,23 +406,38 @@ function readEnvFile() {
 }
 
 function writeEnvFile(vars) {
-  if (process.env.RAILWAY_ENVIRONMENT_NAME) {
-    // Su Railway: salva nel file di override persistente su volume
-    const existing = fs.existsSync(CONFIG_OVERRIDE_FILE)
-      ? JSON.parse(fs.readFileSync(CONFIG_OVERRIDE_FILE, 'utf8'))
-      : {};
-    const merged = { ...existing, ...vars };
-    fs.writeFileSync(CONFIG_OVERRIDE_FILE, JSON.stringify(merged, null, 2));
-    // Applica immediatamente a process.env: i tool chiamati dopo usano i valori aggiornati
-    for (const [k, v] of Object.entries(vars)) process.env[k] = String(v);
-  } else {
-    // In locale: aggiorna .env
-    const existing = readEnvFile();
-    const merged   = { ...existing, ...vars };
-    const content  = Object.entries(merged).map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
+  // ⚡ PRINCIPIO: la configurazione è la legge.
+  // 1. Applica IMMEDIATAMENTE a process.env (effetto per tutti i tool nella stessa sessione)
+  for (const [k, v] of Object.entries(vars)) process.env[k] = String(v);
+
+  // 2. SEMPRE scrivi sul .env locale (fonte di verità persistente su disco)
+  try {
+    const existingEnv = {};
+    if (fs.existsSync(ENV_FILE)) {
+      const lines = fs.readFileSync(ENV_FILE, 'utf8').split('\n');
+      for (const line of lines) {
+        const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+        if (m) existingEnv[m[1]] = m[2].replace(/^["']|["']$/g, '');
+      }
+    }
+    const merged  = { ...existingEnv, ...vars };
+    const content = Object.entries(merged).map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
     fs.writeFileSync(ENV_FILE, content);
-    // ✅ Aggiorna anche process.env per effetto immediato (senza riavvio)
-    for (const [k, v] of Object.entries(vars)) process.env[k] = String(v);
+  } catch (e) {
+    logger.warn(`writeEnvFile: impossibile scrivere .env: ${e.message}`);
+  }
+
+  // 3. Su Railway: ANCHE config-override.json su volume /data (persiste tra i deploy)
+  if (process.env.RAILWAY_ENVIRONMENT_NAME) {
+    try {
+      const existing = fs.existsSync(CONFIG_OVERRIDE_FILE)
+        ? JSON.parse(fs.readFileSync(CONFIG_OVERRIDE_FILE, 'utf8'))
+        : {};
+      const merged = { ...existing, ...vars };
+      fs.writeFileSync(CONFIG_OVERRIDE_FILE, JSON.stringify(merged, null, 2));
+    } catch (e) {
+      logger.warn(`writeEnvFile: impossibile scrivere config-override.json: ${e.message}`);
+    }
   }
 }
 
@@ -455,6 +470,7 @@ app.get('/api/config', (_req, res) => {
     HEYGEN_AVATAR_OFFSET_Y:        env.HEYGEN_AVATAR_OFFSET_Y        || '0.00',
     HEYGEN_CAPTION:                env.HEYGEN_CAPTION                || 'false',
     HEYGEN_VIDEO_TITLE:            env.HEYGEN_VIDEO_TITLE            || '',
+    HEYGEN_TEST_MODE:              env.HEYGEN_TEST_MODE              || 'false',
     ANTHROPIC_API_KEY:             maskKey(env.ANTHROPIC_API_KEY),
     ANTHROPIC_MODEL:               env.ANTHROPIC_MODEL               || 'claude-sonnet-4-20250514',
     META_ACCESS_TOKEN:             maskKey(env.META_ACCESS_TOKEN),
@@ -482,7 +498,7 @@ app.post('/api/config', (req, res) => {
       'HEYGEN_VOICE_SPEED','HEYGEN_VOICE_PITCH','HEYGEN_VOICE_EMOTION','HEYGEN_VOICE_LOCALE',
       'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
       'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
-      'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE',
+      'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE','HEYGEN_TEST_MODE',
       'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
       'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
       'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
