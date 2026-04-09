@@ -69,6 +69,28 @@ export async function initDb() {
       user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
       config  JSONB NOT NULL DEFAULT '{}'::jsonb
     );
+
+    CREATE TABLE IF NOT EXISTS video_history (
+      id           TEXT        PRIMARY KEY,
+      user_id      TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      topic        TEXT        NOT NULL DEFAULT '',
+      pilastro     TEXT        NOT NULL DEFAULT '',
+      status       TEXT        NOT NULL DEFAULT 'success',
+      output_file  TEXT        NOT NULL DEFAULT '',
+      error_msg    TEXT        NOT NULL DEFAULT '',
+      created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS video_history_user_id_idx ON video_history(user_id, created_at DESC);
+
+    CREATE TABLE IF NOT EXISTS import_history (
+      id              TEXT        PRIMARY KEY,
+      user_id         TEXT        NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      source          TEXT        NOT NULL DEFAULT 'xlsx',
+      count           INTEGER     NOT NULL DEFAULT 0,
+      topics_snapshot JSONB       NOT NULL DEFAULT '[]'::jsonb,
+      created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS import_history_user_id_idx ON import_history(user_id, created_at DESC);
   `);
   console.info('[DB] ✅ Schema PostgreSQL inizializzato');
 }
@@ -251,4 +273,56 @@ export async function migrateFromFiles(usersFile, usersDir) {
   }
 
   console.info('[DB] ✅ Migrazione da file JSON completata');
+}
+
+// ─── Video History ────────────────────────────────────────────────────────────
+
+export async function dbAddVideoHistory(userId, entry) {
+  await pool().query(`
+    INSERT INTO video_history (id, user_id, topic, pilastro, status, output_file, error_msg, created_at)
+    VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+  `, [entry.id, userId, entry.topic||'', entry.pilastro||'', entry.status||'success',
+      entry.outputFile||'', entry.errorMsg||'', entry.createdAt||new Date().toISOString()]);
+}
+
+export async function dbReadVideoHistory(userId, limit = 200) {
+  const { rows } = await pool().query(
+    'SELECT * FROM video_history WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2',
+    [userId, limit]
+  );
+  return rows.map(r => ({
+    id:         r.id,
+    userId:     r.user_id,
+    topic:      r.topic,
+    pilastro:   r.pilastro,
+    status:     r.status,
+    outputFile: r.output_file,
+    errorMsg:   r.error_msg,
+    createdAt:  r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+  }));
+}
+
+// ─── Import History ───────────────────────────────────────────────────────────
+
+export async function dbAddImportHistory(userId, entry) {
+  await pool().query(`
+    INSERT INTO import_history (id, user_id, source, count, topics_snapshot, created_at)
+    VALUES ($1,$2,$3,$4,$5::jsonb,$6)
+  `, [entry.id, userId, entry.source||'xlsx', entry.count||0,
+      JSON.stringify(entry.topicsSnapshot||[]), entry.createdAt||new Date().toISOString()]);
+}
+
+export async function dbReadImportHistory(userId, limit = 200) {
+  const { rows } = await pool().query(
+    'SELECT * FROM import_history WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2',
+    [userId, limit]
+  );
+  return rows.map(r => ({
+    id:             r.id,
+    userId:         r.user_id,
+    source:         r.source,
+    count:          r.count,
+    topicsSnapshot: Array.isArray(r.topics_snapshot) ? r.topics_snapshot : [],
+    createdAt:      r.created_at instanceof Date ? r.created_at.toISOString() : String(r.created_at),
+  }));
 }

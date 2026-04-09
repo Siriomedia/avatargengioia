@@ -246,7 +246,7 @@ async function parseMessageWithAI(userMessage) {
  * @param {Function} getState      — callback per ottenere lo stato corrente del pipeline
  * @returns {{ bot: TelegramBot, sendMessage: Function }}
  */
-export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = null, saveTopicsCallback = null) {
+export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = null, saveTopicsCallback = null, onImportHistory = null) {
   const token  = config.telegram?.token;
   const chatId = config.telegram?.chatId;
 
@@ -566,6 +566,7 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
       }));
 
       await saveT([...existing, ...toAdd]);
+      if (onImportHistory) await onImportHistory(toAdd, 'telegram').catch(() => {});
       logger.info(`Telegram: ${toAdd.length} topic aggiunti da messaggio libero`);
 
       const topicList = toAdd.map((t, i) =>
@@ -623,6 +624,7 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
         })).filter(r => r.topic);
 
         await saveT([...existing, ...toAdd]);
+        if (onImportHistory) await onImportHistory(toAdd, 'telegram-wizard').catch(() => {});
         logger.info(`Wizard import: ${toAdd.length} topic importati da Telegram`);
 
         await bot.sendMessage(id, [

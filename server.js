@@ -29,6 +29,8 @@ import {
   dbReadUsers, dbUpsertUser, dbDeleteUser,
   dbReadUserTopics, dbWriteUserTopics,
   dbReadUserConfig, dbMergeUserConfig,
+  dbAddVideoHistory, dbReadVideoHistory,
+  dbAddImportHistory, dbReadImportHistory,
 } from './config/db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -128,6 +130,44 @@ async function writeUserTopics(userId, topics) {
   fs.writeFileSync(path.join(dir, 'topics.json'), JSON.stringify(topics, null, 2));
   // Persisti anche su DB se abilitato
   if (isDbEnabled()) await dbWriteUserTopics(userId, topics);
+}
+
+// ─── History helpers ─────────────────────────────────────────────────────────
+function getHistoryFile(userId, type) {
+  return path.join(getUserDir(userId), `${type}-history.json`);
+}
+function readHistoryFile(userId, type) {
+  const f = getHistoryFile(userId, type);
+  if (!fs.existsSync(f)) return [];
+  try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return []; }
+}
+function appendHistoryFile(userId, type, entry) {
+  const f    = getHistoryFile(userId, type);
+  const dir  = getUserDir(userId);
+  fs.mkdirSync(dir, { recursive: true });
+  const list = readHistoryFile(userId, type);
+  list.unshift(entry);              // più recente in testa
+  fs.writeFileSync(f, JSON.stringify(list.slice(0, 500), null, 2)); // max 500 voci
+}
+
+async function addVideoHistory(userId, entry) {
+  const rec = { id: randomUUID(), ...entry, createdAt: new Date().toISOString() };
+  appendHistoryFile(userId, 'video', rec);
+  if (isDbEnabled()) { try { await dbAddVideoHistory(userId, rec); } catch(e) { logger.warn(`addVideoHistory DB: ${e.message}`); } }
+}
+async function readVideoHistory(userId) {
+  if (isDbEnabled()) { try { return await dbReadVideoHistory(userId); } catch {} }
+  return readHistoryFile(userId, 'video');
+}
+
+async function addImportHistory(userId, entry) {
+  const rec = { id: randomUUID(), ...entry, createdAt: new Date().toISOString() };
+  appendHistoryFile(userId, 'import', rec);
+  if (isDbEnabled()) { try { await dbAddImportHistory(userId, rec); } catch(e) { logger.warn(`addImportHistory DB: ${e.message}`); } }
+}
+async function readImportHistory(userId) {
+  if (isDbEnabled()) { try { return await dbReadImportHistory(userId); } catch {} }
+  return readHistoryFile(userId, 'import');
 }
 
 // ─── Auth Middleware ─────────────────────────────────────────────────────────
@@ -342,7 +382,21 @@ async function runPipeline(userId) {
 
     setState({ status: 'success', lastResult: reelPath });
     logger.success('Pipeline completata con successo!');
-    if (currentTopicId) { const t = await readUserTopics(userId); const it = t.find(x => x.id === currentTopicId); if (it) { it.status = 'done'; await writeUserTopics(userId, t); } }
+    if (currentTopicId) {
+      const t = await readUserTopics(userId);
+      const it = t.find(x => x.id === currentTopicId);
+      if (it) {
+        it.status = 'done';
+        await writeUserTopics(userId, t);
+        await addVideoHistory(userId, {
+          topic:      it.topic,
+          pilastro:   it.pilastro || '',
+          status:     'success',
+          outputFile: path.basename(reelPath),
+          errorMsg:   '',
+        });
+      }
+    }
 
   } catch (err) {
     logger.error(`Pipeline fallita: ${err.message}`);
@@ -350,7 +404,21 @@ async function runPipeline(userId) {
     const running = pipelineState.steps.find(s => s.status === 'running');
     if (running) setStep(running.name, 'error', err.message.slice(0, 60));
     setState({ status: 'error', lastResult: err.message });
-    if (currentTopicId) { const t = await readUserTopics(userId); const it = t.find(x => x.id === currentTopicId); if (it) { it.status = 'error'; await writeUserTopics(userId, t); } }
+    if (currentTopicId) {
+      const t = await readUserTopics(userId);
+      const it = t.find(x => x.id === currentTopicId);
+      if (it) {
+        it.status = 'error';
+        await writeUserTopics(userId, t);
+        await addVideoHistory(userId, {
+          topic:      it.topic,
+          pilastro:   it.pilastro || '',
+          status:     'error',
+          outputFile: '',
+          errorMsg:   err.message.slice(0, 300),
+        });
+      }
+    }
   }
 }
 
@@ -360,6 +428,7 @@ const telegram = startTelegramBot(
   () => pipelineState,
   async () => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); return admin ? await readUserTopics(admin.id) : []; },
   async (topics) => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); if (admin) await writeUserTopics(admin.id, topics); },
+  async (topics, source) => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); if (admin) await addImportHistory(admin.id, { source: source||'telegram', count: topics.length, topicsSnapshot: topics.map(({ id, topic, pilastro, status }) => ({ id, topic, pilastro, status })) }); },
 );
 
 /**
@@ -641,6 +710,11 @@ app.post('/api/topics/upload', requireAuth, upload.single('file'), async (req, r
       .filter(r => r.topic);
 
     await writeUserTopics(req.effectiveUserId, topics);
+    await addImportHistory(req.effectiveUserId, {
+      source:          'xlsx',
+      count:           topics.length,
+      topicsSnapshot:  topics.map(({ id, topic, pilastro, status }) => ({ id, topic, pilastro, status })),
+    });
     logger.info(`Topics importati: ${topics.length} righe da XLSX`);
     res.json({ ok: true, count: topics.length, topics });
   } catch (err) {
@@ -1042,6 +1116,11 @@ app.post('/api/wizard/import', requireAuth, async (req, res) => {
     const maxId    = existing.length ? Math.max(...existing.map(t => t.id)) : 0;
     const toAdd    = topics.map((t, i) => ({ ...t, id: maxId + i + 1, status: 'pending' }));
     await writeUserTopics(req.effectiveUserId, [...existing, ...toAdd]);
+    await addImportHistory(req.effectiveUserId, {
+      source:         'wizard',
+      count:          toAdd.length,
+      topicsSnapshot: toAdd.map(({ id, topic, pilastro, status }) => ({ id, topic, pilastro, status })),
+    });
     logger.info(`Wizard import: ${toAdd.length} topic aggiunti [user: ${req.effectiveUserId}]`);
     res.json({ ok: true, count: toAdd.length });
   } catch (err) {
@@ -1093,6 +1172,44 @@ app.get('/api/topics/template', requireAuth, (_req, res) => {
   res.setHeader('Content-Disposition', 'attachment; filename="topics-template.xlsx"');
   res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
   res.send(buf);
+});
+
+// ─── History API ─────────────────────────────────────────────────────────────
+
+// GET /api/history/videos — storico video generati dall'utente corrente
+app.get('/api/history/videos', requireAuth, async (req, res) => {
+  try {
+    res.json(await readVideoHistory(req.effectiveUserId));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/history/imports — storico import topic dell'utente corrente
+app.get('/api/history/imports', requireAuth, async (req, res) => {
+  try {
+    res.json(await readImportHistory(req.effectiveUserId));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/users/:id/history/videos — admin vede storico video di qualsiasi utente
+app.get('/api/admin/users/:id/history/videos', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    res.json(await readVideoHistory(req.params.id));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/admin/users/:id/history/imports — admin vede storico import di qualsiasi utente
+app.get('/api/admin/users/:id/history/imports', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    res.json(await readImportHistory(req.params.id));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // SSE — real-time events stream (token via query: /api/events?token=...)
