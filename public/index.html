@@ -2224,41 +2224,135 @@
   });
 
   // ── Boot ───────────────────────────────────────────────────────────────────
-  loadInitial();
-  connectSSE();
-  loadTopics();
+  // (boot avviene dopo checkAuth — vedi sezione Auth JWT sotto)
 
-  // ── Tab Switching ──────────────────────────────────────────────────────────
-  // ── Login ─────────────────────────────────────────────────────────────
-  const _LC = { u: 'siriomediahouse@gmail.com', p: 'Avatar2026!' };
-  const _SK = 'aggia_auth';
+  // ── Auth JWT ─────────────────────────────────────────────────────────────
+  const TOKEN_KEY   = 'avatargen_token';
+  let currentUser   = null;
+  let _impersonating = null;
 
-  function doLogin() {
+  function getToken()   { return localStorage.getItem(TOKEN_KEY); }
+  function setToken(t)  { localStorage.setItem(TOKEN_KEY, t); }
+  function clearToken() { localStorage.removeItem(TOKEN_KEY); }
+
+  function logout() {
+    clearToken();
+    currentUser = null;
+    _impersonating = null;
+    document.getElementById('impersonate-banner')?.remove();
+    location.reload();
+  }
+
+  async function authFetch(url, opts = {}) {
+    const token   = getToken();
+    const headers = { ...(opts.headers || {}) };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+    if (_impersonating) headers['X-As-User'] = _impersonating;
+    if (!(opts.body instanceof FormData) && opts.method && opts.method !== 'GET' && !headers['Content-Type']) {
+      headers['Content-Type'] = 'application/json';
+    }
+    const res = await fetch(url, { ...opts, headers });
+    if (res.status === 401) {
+      clearToken();
+      document.getElementById('login-overlay')?.classList.remove('hidden');
+      document.getElementById('login-error') && (document.getElementById('login-error').textContent = 'Sessione scaduta. Accedi di nuovo.');
+      throw new Error('Sessione scaduta');
+    }
+    return res;
+  }
+
+  async function doLogin() {
     const email = document.getElementById('login-email').value.trim();
     const pass  = document.getElementById('login-pass').value;
     const errEl = document.getElementById('login-error');
     const box   = document.getElementById('login-box');
-    if (email === _LC.u && pass === _LC.p) {
-      sessionStorage.setItem(_SK, '1');
-      const overlay = document.getElementById('login-overlay');
-      overlay.classList.add('hidden');
-      setTimeout(() => overlay.remove(), 450);
-    } else {
-      errEl.textContent = 'Email o password non corretti.';
+    const btn   = box.querySelector('.login-btn');
+    errEl.textContent = '';
+    btn.disabled = true; btn.textContent = 'Accesso in corso…';
+    try {
+      const res  = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Credenziali non valide');
+      setToken(data.token);
+      currentUser = data.user;
+      document.getElementById('login-overlay').classList.add('hidden');
+      setTimeout(() => document.getElementById('login-overlay')?.remove(), 450);
+      onLoggedIn();
+    } catch (err) {
+      errEl.textContent = err.message;
       box.classList.remove('login-shake');
       void box.offsetWidth;
       box.classList.add('login-shake');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Accedi';
     }
   }
 
-  // Intercetta Enter nei campi
+  async function checkAuth() {
+    const token = getToken();
+    if (!token) return false;
+    try {
+      const res = await fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) { clearToken(); return false; }
+      currentUser = await res.json();
+      return true;
+    } catch { clearToken(); return false; }
+  }
+
+  function renderUserBadge() {
+    if (!currentUser) return;
+    const hRight = document.querySelector('.header-right');
+    document.getElementById('user-badge')?.remove();
+    const badge = document.createElement('div');
+    badge.id = 'user-badge';
+    badge.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid var(--border);border-radius:100px;background:var(--surface);font-size:12.5px;font-weight:600;';
+    badge.innerHTML =
+      `<span style="color:var(--text2)">👤</span>` +
+      `<span>${escHtml(currentUser.name || currentUser.email)}</span>` +
+      (currentUser.role === 'admin'
+        ? `<span style="background:linear-gradient(135deg,#1a6fdf,#38a8f5);color:#fff;padding:2px 8px;border-radius:20px;font-size:10px;font-weight:700;letter-spacing:.3px;">ADMIN</span>`
+        : '') +
+      `<button onclick="logout()" title="Logout"
+         style="display:flex;align-items:center;gap:4px;background:none;border:1px solid var(--border);border-radius:8px;cursor:pointer;color:var(--text2);font-size:11.5px;font-weight:600;padding:3px 9px;transition:background .15s,color .15s;"
+         onmouseover="this.style.background='var(--red-dim)';this.style.color='var(--red)';this.style.borderColor='var(--red-border)'"
+         onmouseout="this.style.background='none';this.style.color='var(--text2)';this.style.borderColor='var(--border)'">
+         ↩ Logout
+       </button>`;
+    hRight.insertBefore(badge, hRight.firstChild);
+    if (currentUser.role === 'admin') {
+      document.getElementById('tab-btn-admin')?.classList.remove('hidden');
+    }
+  }
+
+  function onLoggedIn() {
+    renderUserBadge();
+    loadInitial();
+    connectSSE();
+    loadTopics();
+  }
+
+  function getImpersonateHeaders() {
+    return _impersonating ? { 'X-As-User': _impersonating } : {};
+  }
+
+  // Intercetta Enter nel form di login
   document.getElementById('login-email').addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('login-pass').focus());
   document.getElementById('login-pass').addEventListener('keydown',  e => e.key === 'Enter' && doLogin());
 
-  // Se già autenticato in questa sessione, rimuove subito l'overlay
-  if (sessionStorage.getItem(_SK) === '1') {
-    document.getElementById('login-overlay').remove();
-  }
+  // Boot — controlla JWT, altrimenti mostra login
+  (async () => {
+    const authed = await checkAuth();
+    if (authed) {
+      document.getElementById('login-overlay')?.classList.add('hidden');
+      setTimeout(() => document.getElementById('login-overlay')?.remove(), 450);
+      onLoggedIn();
+    }
+    // Se non authed, l'overlay è già visibile nel DOM
+  })();
 
   // ── Tabs ──────────────────────────────────────────────────────────────
   function switchTab(name, btn) {
@@ -3188,28 +3282,21 @@
     loadAdminUsers();
   }
 
-  let _impersonating = null;
   function adminImpersonate(userId, email) {
     if (_impersonating === userId) {
       _impersonating = null;
       document.getElementById('impersonate-banner')?.remove();
+      loadTopics(); loadConfigTab();
       return;
     }
     _impersonating = userId;
-    const existing = document.getElementById('impersonate-banner');
-    if (existing) existing.remove();
+    document.getElementById('impersonate-banner')?.remove();
     const banner = document.createElement('div');
     banner.id = 'impersonate-banner';
     banner.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:7000;background:linear-gradient(90deg,#e09820,#c87700);color:#fff;padding:9px 18px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;';
     banner.innerHTML = `<span>&#128101; Stai visualizzando come: ${escHtml(email)}</span><button onclick="adminImpersonate('${userId}','')" style="background:rgba(255,255,255,.2);border:none;color:#fff;padding:4px 10px;border-radius:6px;cursor:pointer;font-weight:700;">Esci</button>`;
     document.body.prepend(banner);
-    // Ricarica dati con header X-As-User
-    loadTopics();
-    loadConfigTab();
-  }
-
-  function getImpersonateHeaders() {
-    return _impersonating ? { 'X-As-User': _impersonating } : {};
+    loadTopics(); loadConfigTab();
   }
 
 </script>
