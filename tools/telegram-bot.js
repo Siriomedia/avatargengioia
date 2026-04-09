@@ -396,9 +396,9 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
   });
 
   // ─── /topics ─────────────────────────────────────────────────────────────
-  bot.onText(/\/topics/, (msg) => {
+  bot.onText(/\/topics/, async (msg) => {
     if (!isAuthorized(msg)) return;
-    const topics = readT();
+    const topics = await readT();
     if (!topics.length) {
       bot.sendMessage(msg.chat.id, '📭 Nessun topic in coda.\nUsa /wizard per crearne!');
       return;
@@ -417,14 +417,14 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
   });
 
   // ─── /run ────────────────────────────────────────────────────────────────
-  bot.onText(/\/run/, (msg) => {
+  bot.onText(/\/run/, async (msg) => {
     if (!isAuthorized(msg)) return;
     const state = getState();
     if (state.status === 'running') {
       bot.sendMessage(msg.chat.id, '⚠️ Pipeline già in esecuzione.');
       return;
     }
-    const pending = readT().filter(t => t.status === 'pending').length;
+    const pending = (await readT()).filter(t => t.status === 'pending').length;
     if (!pending) {
       bot.sendMessage(msg.chat.id, '📭 Nessun topic pending. Usa /wizard per crearne.');
       return;
@@ -553,7 +553,7 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
         return;
       }
 
-      const existing = readT();
+      const existing = await readT();
       let nextId = getNextId(existing);
       const toAdd = newTopics.map(t => ({
         id:       nextId++,
@@ -565,7 +565,7 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
         status:   'pending',
       }));
 
-      saveT([...existing, ...toAdd]);
+      await saveT([...existing, ...toAdd]);
       logger.info(`Telegram: ${toAdd.length} topic aggiunti da messaggio libero`);
 
       const topicList = toAdd.map((t, i) =>
@@ -610,7 +610,7 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
         const ws     = wb.Sheets[wb.SheetNames[0]];
         const rows   = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-        const existing = readT();
+        const existing = await readT();
         let nextId = getNextId(existing);
         const toAdd = rows.map(r => ({
           id:       nextId++,
@@ -622,7 +622,7 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
           status:   'pending',
         })).filter(r => r.topic);
 
-        saveT([...existing, ...toAdd]);
+        await saveT([...existing, ...toAdd]);
         logger.info(`Wizard import: ${toAdd.length} topic importati da Telegram`);
 
         await bot.sendMessage(id, [

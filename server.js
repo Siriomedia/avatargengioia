@@ -24,6 +24,12 @@ import cron from 'node-cron';
 import { config } from './config/index.js';
 import { logger } from './config/logger.js';
 import { startTelegramBot } from './tools/telegram-bot.js';
+import {
+  isDbEnabled, initDb, migrateFromFiles,
+  dbReadUsers, dbUpsertUser, dbDeleteUser,
+  dbReadUserTopics, dbWriteUserTopics,
+  dbReadUserConfig, dbMergeUserConfig,
+} from './config/db.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -46,43 +52,59 @@ const JWT_SECRET = process.env.JWT_SECRET || 'avatargen-jwt-secret-change-me';
 const USERS_FILE = path.join(DATA_DIR !== __dirname ? DATA_DIR : __dirname, 'users.json');
 const USERS_DIR  = path.join(DATA_DIR !== __dirname ? DATA_DIR : __dirname, 'users');
 
-function readUsers() {
-  if (!fs.existsSync(USERS_FILE)) return [];
-  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); }
-  catch { return []; }
-}
-function writeUsers(users) {
-  fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-}
 function getUserDir(userId) {
   return path.join(USERS_DIR, String(userId));
 }
-function readUserConfig(userId) {
+function getUserTopicsFile(userId) {
+  return path.join(getUserDir(userId), 'topics.json');
+}
+
+async function readUsers() {
+  if (isDbEnabled()) return dbReadUsers();
+  if (!fs.existsSync(USERS_FILE)) return [];
+  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf8')); } catch { return []; }
+}
+async function writeUsers(users) {
+  if (isDbEnabled()) {
+    const current = await dbReadUsers();
+    const newIds  = new Set(users.map(u => u.id));
+    for (const u of current) { if (!newIds.has(u.id)) await dbDeleteUser(u.id); }
+    for (const u of users)   { await dbUpsertUser(u); }
+  } else {
+    fs.mkdirSync(path.dirname(USERS_FILE), { recursive: true });
+    fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
+  }
+}
+async function readUserConfig(userId) {
+  if (isDbEnabled()) return dbReadUserConfig(userId);
   const f = path.join(getUserDir(userId), 'config.json');
   if (!fs.existsSync(f)) return {};
   try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return {}; }
 }
-function writeUserConfig(userId, vars) {
-  const dir = getUserDir(userId);
-  fs.mkdirSync(dir, { recursive: true });
-  const f = path.join(dir, 'config.json');
-  const merged = { ...readUserConfig(userId), ...vars };
-  fs.writeFileSync(f, JSON.stringify(merged, null, 2));
+async function writeUserConfig(userId, vars) {
   for (const [k, v] of Object.entries(vars)) process.env[k] = String(v);
+  if (isDbEnabled()) {
+    await dbMergeUserConfig(userId, vars);
+  } else {
+    const dir = getUserDir(userId);
+    fs.mkdirSync(dir, { recursive: true });
+    const existing = await readUserConfig(userId);
+    fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ ...existing, ...vars }, null, 2));
+  }
 }
-function readUserTopics(userId) {
+async function readUserTopics(userId) {
+  if (isDbEnabled()) return dbReadUserTopics(userId);
   const f = path.join(getUserDir(userId), 'topics.json');
   if (!fs.existsSync(f)) return [];
   try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return []; }
 }
-function writeUserTopics(userId, topics) {
+async function writeUserTopics(userId, topics) {
+  // Scrivi sempre su file (usato da select-topic.js durante la pipeline)
   const dir = getUserDir(userId);
   fs.mkdirSync(dir, { recursive: true });
   fs.writeFileSync(path.join(dir, 'topics.json'), JSON.stringify(topics, null, 2));
-}
-function getUserTopicsFile(userId) {
-  return path.join(getUserDir(userId), 'topics.json');
+  // Persisti anche su DB se abilitato
+  if (isDbEnabled()) await dbWriteUserTopics(userId, topics);
 }
 
 // ─── Auth Middleware ─────────────────────────────────────────────────────────
@@ -107,7 +129,7 @@ function requireAdmin(req, res, next) {
 
 // ─── Bootstrap Admin ─────────────────────────────────────────────────────────
 async function bootstrapAdmin() {
-  const users = readUsers();
+  const users = await readUsers();
   if (users.some(u => u.role === 'admin')) return;
   const email    = process.env.ADMIN_EMAIL    || 'admin@localhost';
   const password = process.env.ADMIN_PASSWORD || 'Admin1234!';
@@ -117,13 +139,13 @@ async function bootstrapAdmin() {
                   sections: ['pipeline','topics','wizard','config'],
                   createdAt: new Date().toISOString() };
   users.push(admin);
-  writeUsers(users);
+  await writeUsers(users);
   // Migra config .env esistente al profilo admin
   const existingCfg = readEnvFile();
-  if (Object.keys(existingCfg).length) writeUserConfig(admin.id, existingCfg);
+  if (Object.keys(existingCfg).length) await writeUserConfig(admin.id, existingCfg);
   // Migra topics esistenti al profilo admin
   const existingTopics = readTopics();
-  if (existingTopics.length) writeUserTopics(admin.id, existingTopics);
+  if (existingTopics.length) await writeUserTopics(admin.id, existingTopics);
   logger.info(`👤 Admin creato: ${email} — password: ${password}  ← CAMBIA SU RAILWAY!`);
   console.info(`
 🔑 PRIMO AVVIO — credenziali admin:
@@ -241,7 +263,7 @@ async function runPipeline(userId) {
   logger.info(`─── Avvio ciclo pipeline [user: ${userId}] ───`);
 
   // Applica la configurazione dell'utente a process.env
-  const userCfg = readUserConfig(userId);
+  const userCfg = await readUserConfig(userId);
   for (const [k, v] of Object.entries(userCfg)) process.env[k] = String(v);
 
   const topicsFile = getUserTopicsFile(userId);
@@ -297,7 +319,7 @@ async function runPipeline(userId) {
 
     setState({ status: 'success', lastResult: reelPath });
     logger.success('Pipeline completata con successo!');
-    if (currentTopicId) { const t = readUserTopics(userId); const it = t.find(x => x.id === currentTopicId); if (it) { it.status = 'done'; writeUserTopics(userId, t); } }
+    if (currentTopicId) { const t = await readUserTopics(userId); const it = t.find(x => x.id === currentTopicId); if (it) { it.status = 'done'; await writeUserTopics(userId, t); } }
 
   } catch (err) {
     logger.error(`Pipeline fallita: ${err.message}`);
@@ -305,16 +327,16 @@ async function runPipeline(userId) {
     const running = pipelineState.steps.find(s => s.status === 'running');
     if (running) setStep(running.name, 'error', err.message.slice(0, 60));
     setState({ status: 'error', lastResult: err.message });
-    if (currentTopicId) { const t = readUserTopics(userId); const it = t.find(x => x.id === currentTopicId); if (it) { it.status = 'error'; writeUserTopics(userId, t); } }
+    if (currentTopicId) { const t = await readUserTopics(userId); const it = t.find(x => x.id === currentTopicId); if (it) { it.status = 'error'; await writeUserTopics(userId, t); } }
   }
 }
 
 // ─── Telegram Bot ────────────────────────────────────────────────────────────
 const telegram = startTelegramBot(
-  () => { const admin = readUsers().find(u => u.role === 'admin'); runPipelineAll(admin?.id); },
+  async () => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); runPipelineAll(admin?.id); },
   () => pipelineState,
-  () => { const admin = readUsers().find(u => u.role === 'admin'); return admin ? readUserTopics(admin.id) : []; },
-  (topics) => { const admin = readUsers().find(u => u.role === 'admin'); if (admin) writeUserTopics(admin.id, topics); },
+  async () => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); return admin ? await readUserTopics(admin.id) : []; },
+  async (topics) => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); if (admin) await writeUserTopics(admin.id, topics); },
 );
 
 /**
@@ -326,7 +348,7 @@ async function runPipelineAll(userId) {
   const results = [];
   let processed = 0;
 
-  const totalToProcess = readUserTopics(userId).filter(t => t.status === 'pending').length;
+  const totalToProcess = (await readUserTopics(userId)).filter(t => t.status === 'pending').length;
   if (totalToProcess === 0) {
     telegram.sendMessage('📭 Nessun topic pending da processare.');
     return;
@@ -340,7 +362,7 @@ async function runPipelineAll(userId) {
   );
 
   while (true) {
-    const pendingTopics = readUserTopics(userId).filter(t => t.status === 'pending');
+    const pendingTopics = (await readUserTopics(userId)).filter(t => t.status === 'pending');
     if (!pendingTopics.length) break;
 
     const currentNum = processed + 1;
@@ -407,7 +429,7 @@ app.post('/api/run', requireAuth, (req, res) => {
 app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email e password obbligatori' });
-  const users = readUsers();
+  const users = await readUsers();
   const user  = users.find(u => u.email === email);
   if (!user) return res.status(401).json({ error: 'Credenziali non valide' });
   const ok = await bcrypt.compare(password, user.passwordHash);
@@ -426,7 +448,7 @@ app.post('/api/auth/register', async (req, res) => {
   const { name, email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Email e password obbligatori' });
   if (password.length < 8) return res.status(400).json({ error: 'La password deve avere almeno 8 caratteri' });
-  const users = readUsers();
+  const users = await readUsers();
   if (users.some(u => u.email === email)) return res.status(409).json({ error: 'Email già registrata' });
   const hash = await bcrypt.hash(password, 10);
   const user = {
@@ -435,14 +457,14 @@ app.post('/api/auth/register', async (req, res) => {
     active: true, approved: false, createdAt: new Date().toISOString(),
   };
   users.push(user);
-  writeUsers(users);
+  await writeUsers(users);
   fs.mkdirSync(getUserDir(user.id), { recursive: true });
   logger.info(`Nuova registrazione in attesa di approvazione: ${email}`);
   res.json({ ok: true, message: 'Registrazione inviata! Attendi l\'approvazione dell\'amministratore.' });
 });
 
-app.get('/api/auth/me', requireAuth, (req, res) => {
-  const users = readUsers();
+app.get('/api/auth/me', requireAuth, async (req, res) => {
+  const users = await readUsers();
   const user  = users.find(u => u.id === req.user.id);
   if (!user) return res.status(404).json({ error: 'Utente non trovato' });
   const { passwordHash: _ph, ...safe } = user;
@@ -452,20 +474,20 @@ app.get('/api/auth/me', requireAuth, (req, res) => {
 app.patch('/api/auth/password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword } = req.body;
   if (!currentPassword || !newPassword) return res.status(400).json({ error: 'Parametri mancanti' });
-  const users = readUsers();
+  const users = await readUsers();
   const idx   = users.findIndex(u => u.id === req.user.id);
   if (idx < 0) return res.status(404).json({ error: 'Utente non trovato' });
   const ok = await bcrypt.compare(currentPassword, users[idx].passwordHash);
   if (!ok) return res.status(400).json({ error: 'Password attuale non corretta' });
   users[idx].passwordHash = await bcrypt.hash(newPassword, 10);
-  writeUsers(users);
+  await writeUsers(users);
   logger.info(`Password cambiata: ${users[idx].email}`);
   res.json({ ok: true });
 });
 
 // ─── Admin Routes ─────────────────────────────────────────────────────────────
-app.get('/api/admin/users', requireAuth, requireAdmin, (_req, res) => {
-  const users = readUsers().map(({ passwordHash, ...u }) => u);
+app.get('/api/admin/users', requireAuth, requireAdmin, async (_req, res) => {
+  const users = (await readUsers()).map(({ passwordHash, ...u }) => u);
   res.json(users);
 });
 
@@ -473,14 +495,14 @@ app.post('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
   const { email, name, password, role = 'user', plan = 'basic',
           sections = ['pipeline','topics','wizard','config'] } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'email e password obbligatori' });
-  const users = readUsers();
+  const users = await readUsers();
   if (users.some(u => u.email === email)) return res.status(409).json({ error: 'Email già registrata' });
   const hash = await bcrypt.hash(password, 10);
   const user = { id: randomUUID(), email, name: name || email, passwordHash: hash,
                  role, plan, active: true, approved: true, sections,
                  createdAt: new Date().toISOString() };
   users.push(user);
-  writeUsers(users);
+  await writeUsers(users);
   fs.mkdirSync(getUserDir(user.id), { recursive: true });
   logger.info(`Admin: creato utente ${email} [${role}]`);
   const { passwordHash: _ph2, ...safe } = user;
@@ -488,63 +510,63 @@ app.post('/api/admin/users', requireAuth, requireAdmin, async (req, res) => {
 });
 
 app.patch('/api/admin/users/:id', requireAuth, requireAdmin, async (req, res) => {
-  const users = readUsers();
+  const users = await readUsers();
   const idx   = users.findIndex(u => u.id === req.params.id);
   if (idx < 0) return res.status(404).json({ error: 'Utente non trovato' });
   const { password, passwordHash: _h, ...rest } = req.body;
   if (password) rest.passwordHash = await bcrypt.hash(password, 10);
   users[idx] = { ...users[idx], ...rest };
-  writeUsers(users);
+  await writeUsers(users);
   const { passwordHash: _ph3, ...safe } = users[idx];
   res.json({ ok: true, user: safe });
 });
 
-app.delete('/api/admin/users/:id', requireAuth, requireAdmin, (req, res) => {
+app.delete('/api/admin/users/:id', requireAuth, requireAdmin, async (req, res) => {
   if (req.params.id === req.user.id) return res.status(400).json({ error: 'Non puoi eliminare te stesso' });
-  const users = readUsers().filter(u => u.id !== req.params.id);
-  writeUsers(users);
+  const users = (await readUsers()).filter(u => u.id !== req.params.id);
+  await writeUsers(users);
   res.json({ ok: true });
 });
 
-app.post('/api/admin/users/:id/toggle-active', requireAuth, requireAdmin, (req, res) => {
+app.post('/api/admin/users/:id/toggle-active', requireAuth, requireAdmin, async (req, res) => {
   if (req.params.id === req.user.id) return res.status(400).json({ error: 'Non puoi disabilitare te stesso' });
-  const users = readUsers();
+  const users = await readUsers();
   const idx   = users.findIndex(u => u.id === req.params.id);
   if (idx < 0) return res.status(404).json({ error: 'Utente non trovato' });
   if (users[idx].role === 'admin') return res.status(400).json({ error: 'Non puoi disabilitare un admin' });
   users[idx].active = users[idx].active === false ? true : false;
-  writeUsers(users);
+  await writeUsers(users);
   logger.info(`Admin: ${users[idx].active ? 'abilitato' : 'disabilitato'} utente ${users[idx].email}`);
   res.json({ ok: true, active: users[idx].active });
 });
 
-app.get('/api/admin/users/:id/config', requireAuth, requireAdmin, (req, res) => {
-  res.json(readUserConfig(req.params.id));
+app.get('/api/admin/users/:id/config', requireAuth, requireAdmin, async (req, res) => {
+  res.json(await readUserConfig(req.params.id));
 });
 
-app.patch('/api/admin/users/:id/config', requireAuth, requireAdmin, (req, res) => {
-  writeUserConfig(req.params.id, req.body);
+app.patch('/api/admin/users/:id/config', requireAuth, requireAdmin, async (req, res) => {
+  await writeUserConfig(req.params.id, req.body);
   res.json({ ok: true });
 });
 
-app.get('/api/admin/users/:id/topics', requireAuth, requireAdmin, (req, res) => {
-  res.json(readUserTopics(req.params.id));
+app.get('/api/admin/users/:id/topics', requireAuth, requireAdmin, async (req, res) => {
+  res.json(await readUserTopics(req.params.id));
 });
 
-app.post('/api/admin/users/:id/approve', requireAuth, requireAdmin, (req, res) => {
-  const users = readUsers();
+app.post('/api/admin/users/:id/approve', requireAuth, requireAdmin, async (req, res) => {
+  const users = await readUsers();
   const idx   = users.findIndex(u => u.id === req.params.id);
   if (idx < 0) return res.status(404).json({ error: 'Utente non trovato' });
   users[idx].approved = true;
   users[idx].active   = true;
-  writeUsers(users);
+  await writeUsers(users);
   logger.info(`Admin: approvato utente ${users[idx].email}`);
   res.json({ ok: true });
 });
 
-app.post('/api/admin/users/:id/reject', requireAuth, requireAdmin, (req, res) => {
-  const users = readUsers().filter(u => u.id !== req.params.id);
-  writeUsers(users);
+app.post('/api/admin/users/:id/reject', requireAuth, requireAdmin, async (req, res) => {
+  const users = (await readUsers()).filter(u => u.id !== req.params.id);
+  await writeUsers(users);
   logger.info(`Admin: rifiutato e rimosso utente ${req.params.id}`);
   res.json({ ok: true });
 });
@@ -552,10 +574,10 @@ app.post('/api/admin/users/:id/reject', requireAuth, requireAdmin, (req, res) =>
 // ─── Topics API ─────────────────────────────────────────────────────────────
 
 // GET  /api/topics — legge topics dell'utente
-app.get('/api/topics', requireAuth, (req, res) => res.json(readUserTopics(req.effectiveUserId)));
+app.get('/api/topics', requireAuth, async (req, res) => res.json(await readUserTopics(req.effectiveUserId)));
 
 // POST /api/topics/upload — carica XLSX
-app.post('/api/topics/upload', requireAuth, upload.single('file'), (req, res) => {
+app.post('/api/topics/upload', requireAuth, upload.single('file'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'Nessun file ricevuto' });
     const wb   = XLSX.read(req.file.buffer, { type: 'buffer' });
@@ -584,7 +606,7 @@ app.post('/api/topics/upload', requireAuth, upload.single('file'), (req, res) =>
       }))
       .filter(r => r.topic);
 
-    writeUserTopics(req.effectiveUserId, topics);
+    await writeUserTopics(req.effectiveUserId, topics);
     logger.info(`Topics importati: ${topics.length} righe da XLSX`);
     res.json({ ok: true, count: topics.length, topics });
   } catch (err) {
@@ -594,21 +616,21 @@ app.post('/api/topics/upload', requireAuth, upload.single('file'), (req, res) =>
 });
 
 // PATCH /api/topics/:id — aggiorna status di un topic
-app.patch('/api/topics/:id', requireAuth, (req, res) => {
+app.patch('/api/topics/:id', requireAuth, async (req, res) => {
   const id     = parseInt(req.params.id);
-  const topics = readUserTopics(req.effectiveUserId);
+  const topics = await readUserTopics(req.effectiveUserId);
   const idx    = topics.findIndex(t => t.id === id);
   if (idx < 0) return res.status(404).json({ error: 'Topic non trovato' });
   topics[idx]  = { ...topics[idx], ...req.body };
-  writeUserTopics(req.effectiveUserId, topics);
+  await writeUserTopics(req.effectiveUserId, topics);
   res.json(topics[idx]);
 });
 
 // DELETE /api/topics/:id — elimina un topic
-app.delete('/api/topics/:id', requireAuth, (req, res) => {
+app.delete('/api/topics/:id', requireAuth, async (req, res) => {
   const id     = parseInt(req.params.id);
-  const topics = readUserTopics(req.effectiveUserId).filter(t => t.id !== id);
-  writeUserTopics(req.effectiveUserId, topics);
+  const topics = (await readUserTopics(req.effectiveUserId)).filter(t => t.id !== id);
+  await writeUserTopics(req.effectiveUserId, topics);
   res.json({ ok: true });
 });
 
@@ -695,8 +717,8 @@ function maskKey(val) {
 }
 
 // GET /api/config — restituisce config corrente (chiavi mascherate)
-app.get('/api/config', requireAuth, (req, res) => {
-  const env = readUserConfig(req.effectiveUserId);
+app.get('/api/config', requireAuth, async (req, res) => {
+  const env = await readUserConfig(req.effectiveUserId);
   res.json({
     HEYGEN_API_KEY:                maskKey(env.HEYGEN_API_KEY),
     HEYGEN_AVATAR_ID:              env.HEYGEN_AVATAR_ID              || '',
@@ -742,7 +764,7 @@ app.get('/api/config', requireAuth, (req, res) => {
 });
 
 // POST /api/config — salva variabili nel profilo utente
-app.post('/api/config', requireAuth, (req, res) => {
+app.post('/api/config', requireAuth, async (req, res) => {
   try {
     const allowed = [
       'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE',
@@ -769,7 +791,7 @@ app.post('/api/config', requireAuth, (req, res) => {
       }
     }
     if (!Object.keys(patch).length) return res.json({ ok: true, saved: 0 });
-    writeUserConfig(req.effectiveUserId, patch);
+    await writeUserConfig(req.effectiveUserId, patch);
     logger.info(`Config aggiornata [user: ${req.effectiveUserId}]: ${Object.keys(patch).join(', ')}`);
     res.json({ ok: true, saved: Object.keys(patch).length, keys: Object.keys(patch) });
   } catch(err) {
@@ -781,7 +803,7 @@ app.post('/api/config', requireAuth, (req, res) => {
 // GET /api/heygen/avatars — lista avatar disponibili
 app.get('/api/heygen/avatars', requireAuth, async (req, res) => {
   try {
-    const env    = readUserConfig(req.effectiveUserId);
+    const env    = await readUserConfig(req.effectiveUserId);
     const apiKey = env.HEYGEN_API_KEY || process.env.HEYGEN_API_KEY;
     if (!apiKey || apiKey.includes('...')) {
       return res.status(400).json({ error: 'HEYGEN_API_KEY non configurata' });
@@ -809,7 +831,7 @@ app.get('/api/heygen/avatars', requireAuth, async (req, res) => {
 // GET /api/heygen/voices — lista voci disponibili
 app.get('/api/heygen/voices', requireAuth, async (req, res) => {
   try {
-    const env    = readUserConfig(req.effectiveUserId);
+    const env    = await readUserConfig(req.effectiveUserId);
     const apiKey = env.HEYGEN_API_KEY || process.env.HEYGEN_API_KEY;
     if (!apiKey || apiKey.includes('...')) {
       return res.status(400).json({ error: 'HEYGEN_API_KEY non configurata' });
@@ -890,7 +912,7 @@ REGOLE:
 // POST /api/wizard/generate — Gemini genera i topic dal questionario
 app.post('/api/wizard/generate', requireAuth, async (req, res) => {
   try {
-    const env    = readUserConfig(req.effectiveUserId);
+    const env    = await readUserConfig(req.effectiveUserId);
     const apiKey = env.GEMINI_API_KEY || process.env.GEMINI_API_KEY;
     if (!apiKey) return res.status(400).json({ error: 'GEMINI_API_KEY non configurata' });
 
@@ -972,14 +994,14 @@ app.post('/api/wizard/export-xlsx', requireAuth, (req, res) => {
 });
 
 // POST /api/wizard/import — importa direttamente i topic generati nella pipeline
-app.post('/api/wizard/import', requireAuth, (req, res) => {
+app.post('/api/wizard/import', requireAuth, async (req, res) => {
   try {
     const { topics } = req.body;
     if (!topics?.length) return res.status(400).json({ error: 'Nessun topic fornito' });
-    const existing = readUserTopics(req.effectiveUserId);
+    const existing = await readUserTopics(req.effectiveUserId);
     const maxId    = existing.length ? Math.max(...existing.map(t => t.id)) : 0;
     const toAdd    = topics.map((t, i) => ({ ...t, id: maxId + i + 1, status: 'pending' }));
-    writeUserTopics(req.effectiveUserId, [...existing, ...toAdd]);
+    await writeUserTopics(req.effectiveUserId, [...existing, ...toAdd]);
     logger.info(`Wizard import: ${toAdd.length} topic aggiunti [user: ${req.effectiveUserId}]`);
     res.json({ ok: true, count: toAdd.length });
   } catch (err) {
@@ -1071,11 +1093,20 @@ logger.info(`Schedule: ${config.cron.schedule}`);
 
 // Bootstrap admin + avvio
 (async () => {
+  // Inizializza DB se DATABASE_URL è configurata
+  if (isDbEnabled()) {
+    logger.info('🐘 DATABASE_URL rilevata — modalità PostgreSQL');
+    await initDb();
+    await migrateFromFiles(USERS_FILE, USERS_DIR);
+  } else {
+    logger.info('📁 Nessun DATABASE_URL — modalità file JSON (locale)');
+  }
+
   await bootstrapAdmin();
 
   // Cron scheduler — usa admin user
-  cron.schedule(config.cron.schedule, () => {
-    const admin = readUsers().find(u => u.role === 'admin');
+  cron.schedule(config.cron.schedule, async () => {
+    const admin = (await readUsers()).find(u => u.role === 'admin');
     logger.info(`Cron triggered: ${new Date().toISOString()}`);
     telegram.sendMessage('⏰ <b>Cron attivato</b> — avvio pipeline automatico...');
     runPipelineAll(admin?.id);
