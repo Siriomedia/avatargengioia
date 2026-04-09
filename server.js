@@ -879,7 +879,7 @@ app.get('/api/config', requireAuth, async (req, res) => {
     HEYGEN_VIDEO_TITLE:            env.HEYGEN_VIDEO_TITLE            || '',
     HEYGEN_TEST_MODE:              env.HEYGEN_TEST_MODE              || 'false',
     GEMINI_API_KEY:                maskKey(env.GEMINI_API_KEY),
-    GEMINI_MODEL:                  env.GEMINI_MODEL                  || 'gemini-2.0-flash',
+    GEMINI_MODEL:                  env.GEMINI_MODEL                  || 'gemini-2.5-flash',
     ANTHROPIC_API_KEY:             maskKey(env.ANTHROPIC_API_KEY),
     ANTHROPIC_MODEL:               env.ANTHROPIC_MODEL               || 'claude-sonnet-4-20250514',
     META_ACCESS_TOKEN:             maskKey(env.META_ACCESS_TOKEN),
@@ -1074,7 +1074,7 @@ Genera esattamente ${qty} topic diversi tra loro sull'argomento indicato.`;
     const { GoogleGenerativeAI } = await import('@google/generative-ai');
     const genAI = new GoogleGenerativeAI(apiKey);
     const model  = genAI.getGenerativeModel({
-      model:             env.GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      model:             env.GEMINI_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash',
       systemInstruction: WIZARD_SYSTEM_PROMPT,
     });
     const result = await model.generateContent(userMessage);

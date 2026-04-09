@@ -142,7 +142,7 @@ Genera esattamente ${qty} topic diversi.`;
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model  = genAI.getGenerativeModel({
-    model:             process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    model:             process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     systemInstruction: WIZARD_SYSTEM_PROMPT,
   });
   const result = await model.generateContent(userMessage);
@@ -223,7 +223,7 @@ async function parseMessageWithAI(userMessage) {
 
   const genAI = new GoogleGenerativeAI(apiKey);
   const model  = genAI.getGenerativeModel({
-    model:             process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    model:             process.env.GEMINI_MODEL || 'gemini-2.5-flash',
     systemInstruction: PARSE_SYSTEM_PROMPT,
   });
   const result = await model.generateContent(userMessage);
