@@ -76,7 +76,17 @@ async function writeUsers(users) {
   }
 }
 async function readUserConfig(userId) {
-  if (isDbEnabled()) return dbReadUserConfig(userId);
+  if (isDbEnabled()) {
+    const dbCfg = await dbReadUserConfig(userId);
+    // Merge: variabili Railway/server come base + config salvata dall'utente come override.
+    // Garantisce che la pipeline abbia sempre config valida anche se l'utente non ha mai
+    // salvato nulla via dashboard (es. nuovo utente o primo avvio con DB vuoto).
+    const envBase = {};
+    for (const k of ENV_KNOWN_KEYS) {
+      if (process.env[k]) envBase[k] = process.env[k];
+    }
+    return { ...envBase, ...dbCfg }; // dbCfg vince sempre su envBase
+  }
   const f = path.join(getUserDir(userId), 'config.json');
   if (!fs.existsSync(f)) return {};
   try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return {}; }
@@ -84,7 +94,20 @@ async function readUserConfig(userId) {
 async function writeUserConfig(userId, vars) {
   for (const [k, v] of Object.entries(vars)) process.env[k] = String(v);
   if (isDbEnabled()) {
+    // Fonte di verità principale: PostgreSQL (persiste tra deploy Railway)
     await dbMergeUserConfig(userId, vars);
+    // Backup su file per resilienza (utile se DB è temporaneamente offline o per migrazione)
+    try {
+      const dir = getUserDir(userId);
+      fs.mkdirSync(dir, { recursive: true });
+      const configPath = path.join(dir, 'config.json');
+      const existing = fs.existsSync(configPath)
+        ? JSON.parse(fs.readFileSync(configPath, 'utf8'))
+        : {};
+      fs.writeFileSync(configPath, JSON.stringify({ ...existing, ...vars }, null, 2));
+    } catch (e) {
+      logger.warn(`writeUserConfig backup file: ${e.message}`);
+    }
   } else {
     const dir = getUserDir(userId);
     fs.mkdirSync(dir, { recursive: true });
@@ -670,10 +693,11 @@ function readEnvFile() {
     if (process.env[k]) map[k] = process.env[k];
   }
   // 2. File .env locale (sovrascrive process.env per sviluppo locale)
+  // Ignora valori vuoti: non devono cancellare variabili Railway già valorizzate
   if (fs.existsSync(ENV_FILE)) {
     const lines = fs.readFileSync(ENV_FILE, 'utf8').split('\n');
     for (const line of lines) {
-      const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.*)$/);
+      const m = line.match(/^([A-Z_][A-Z0-9_]*)=(.+)$/);
       if (m) map[m[1]] = m[2].replace(/^["']|["']$/g, '');
     }
   }
