@@ -10,23 +10,31 @@ import 'dotenv/config';
 import { config } from '../config/index.js';
 import { logger } from '../config/logger.js';
 
-const BASE    = config.heygen.baseUrl;
-const headers = {
-  'X-Api-Key':     config.heygen.apiKey,
-  'Content-Type':  'application/json',
-};
-
+const BASE             = config.heygen.baseUrl;
 const POLL_INTERVAL_MS = 10_000;  // 10 secondi
 const POLL_MAX         = 60;      // 10 minuti max
 
 export async function createHeygenVideo(scriptText) {
-  if (!config.heygen.apiKey) throw new Error('HEYGEN_API_KEY mancante nel .env');
-  if (!config.heygen.avatarId) throw new Error('HEYGEN_AVATAR_ID mancante nel .env');
-  if (!config.heygen.voiceId)  throw new Error('HEYGEN_VOICE_ID mancante nel .env');
+  // Legge i valori FRESCHI da process.env ad ogni chiamata
+  // (supporta aggiornamenti config dalla dashboard senza riavvio)
+  const apiKey       = process.env.HEYGEN_API_KEY   || config.heygen.apiKey;
+  const avatarId     = process.env.HEYGEN_AVATAR_ID || config.heygen.avatarId;
+  const voiceId      = process.env.HEYGEN_VOICE_ID  || config.heygen.voiceId;
+  const motionEngine = process.env.HEYGEN_MOTION_ENGINE || config.heygen.motionEngine || '3';
+
+  if (!apiKey)    throw new Error('HEYGEN_API_KEY mancante nel .env');
+  if (!avatarId)  throw new Error('HEYGEN_AVATAR_ID mancante nel .env');
+  if (!voiceId)   throw new Error('HEYGEN_VOICE_ID mancante nel .env');
+
+  // Headers costruiti freschi ad ogni chiamata (API key potrebbe essere cambiata)
+  const headers = {
+    'X-Api-Key':    apiKey,
+    'Content-Type': 'application/json',
+  };
 
   // ── 1. Invia richiesta di generazione ────────────────────────────────────
   // motion_mode: 'normal' = Avatar IV (premium), 'standard' = Avatar III
-  const motionMode    = config.heygen.motionEngine === '4' ? 'normal' : 'standard';
+  const motionMode    = motionEngine === '4' ? 'normal' : 'standard';
   const aspectRatio   = process.env.HEYGEN_ASPECT_RATIO              || '9:16';
   const exprIntensity = parseFloat(process.env.HEYGEN_EXPRESSION_INTENSITY ?? 0.3);
   const avatarStyle   = process.env.HEYGEN_AVATAR_STYLE              || 'normal';
@@ -45,11 +53,17 @@ export async function createHeygenVideo(scriptText) {
   const videoTitle    = process.env.HEYGEN_VIDEO_TITLE               || '';
 
   // Costruisci background
+  // HeyGen accetta solo URL HTTPS — rifiuta data URI (base64) silenziosamente
+  const safeImageUrl = bgImageUrl && !bgImageUrl.startsWith('data:') ? bgImageUrl : '';
+  if (bgImageUrl && bgImageUrl.startsWith('data:')) {
+    logger.warn('HeyGen: HEYGEN_BG_IMAGE_URL è un data URI base64 — verrà usato il colore di sfondo invece');
+  }
+
   let background;
-  if (bgType === 'image' && bgImageUrl) {
-    background = { type: 'image', url: bgImageUrl };
-  } else if (bgType === 'video' && bgImageUrl) {
-    background = { type: 'video', url: bgImageUrl, play_style: bgPlayStyle };
+  if (bgType === 'image' && safeImageUrl) {
+    background = { type: 'image', url: safeImageUrl };
+  } else if (bgType === 'video' && safeImageUrl) {
+    background = { type: 'video', url: safeImageUrl, play_style: bgPlayStyle };
   } else {
     background = { type: 'color', value: bgColor };
   }
@@ -58,7 +72,7 @@ export async function createHeygenVideo(scriptText) {
   const voiceObj = {
     type:       'text',
     input_text: scriptText,
-    voice_id:   config.heygen.voiceId,
+    voice_id:   voiceId,
     speed:      voiceSpeed,
     pitch:      voicePitch,
   };
@@ -68,7 +82,7 @@ export async function createHeygenVideo(scriptText) {
   // Costruisci character object
   const characterObj = {
     type:                 'avatar',
-    avatar_id:            config.heygen.avatarId,
+    avatar_id:            avatarId,
     avatar_style:         avatarStyle,
     motion_mode:          motionMode,
     expression_intensity: exprIntensity,
@@ -84,7 +98,7 @@ export async function createHeygenVideo(scriptText) {
   };
   if (videoTitle) payload.title = videoTitle;
 
-  logger.info(`HeyGen: avvio generazione video (test=${config.isDev}, motionEngine=Avatar ${config.heygen.motionEngine})`);
+  logger.info(`HeyGen: avvio generazione video (test=${config.isDev}, motionEngine=Avatar ${motionEngine})`);
 
   let genRes;
   try {

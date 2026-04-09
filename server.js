@@ -421,6 +421,8 @@ function writeEnvFile(vars) {
     const merged   = { ...existing, ...vars };
     const content  = Object.entries(merged).map(([k, v]) => `${k}=${v}`).join('\n') + '\n';
     fs.writeFileSync(ENV_FILE, content);
+    // ✅ Aggiorna anche process.env per effetto immediato (senza riavvio)
+    for (const [k, v] of Object.entries(vars)) process.env[k] = String(v);
   }
 }
 
@@ -489,7 +491,13 @@ app.post('/api/config', (req, res) => {
     const patch = {};
     for (const key of allowed) {
       if (req.body[key] !== undefined && req.body[key] !== '' && !String(req.body[key]).includes('••••')) {
-        patch[key] = String(req.body[key]).trim();
+        const val = String(req.body[key]).trim();
+        // Rifiuta data URI (base64) per i campi URL — HeyGen non li supporta
+        if ((key === 'HEYGEN_BG_IMAGE_URL') && val.startsWith('data:')) {
+          logger.warn(`Config: ${key} rifiutato perché è un data URI base64 (usa un URL HTTPS)`);
+          continue;
+        }
+        patch[key] = val;
       }
     }
     if (!Object.keys(patch).length) return res.json({ ok: true, saved: 0 });
