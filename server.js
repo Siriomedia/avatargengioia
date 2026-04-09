@@ -54,6 +54,24 @@ const JWT_SECRET = process.env.JWT_SECRET || 'avatargen-jwt-secret-change-me';
 const USERS_FILE = path.join(DATA_DIR !== __dirname ? DATA_DIR : __dirname, 'users.json');
 const USERS_DIR  = path.join(DATA_DIR !== __dirname ? DATA_DIR : __dirname, 'users');
 
+// Chiavi di configurazione note — dichiarate qui così sono disponibili
+// a readUserConfig, getEffectiveConfig e alle route API.
+const ENV_FILE       = path.join(__dirname, '.env');
+const ENV_KNOWN_KEYS = [
+  'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE',
+  'HEYGEN_ASPECT_RATIO','HEYGEN_RESOLUTION','HEYGEN_EXPRESSIVENESS','HEYGEN_EXPRESSION_INTENSITY',
+  'HEYGEN_AVATAR_STYLE','HEYGEN_BG_COLOR','HEYGEN_REMOVE_BG','HEYGEN_MOTION_PROMPT',
+  'HEYGEN_VOICE_SPEED','HEYGEN_VOICE_PITCH','HEYGEN_VOICE_EMOTION','HEYGEN_VOICE_LOCALE',
+  'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
+  'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
+  'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE','HEYGEN_TEST_MODE',
+  'GEMINI_API_KEY','GEMINI_MODEL',
+  'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
+  'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
+  'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
+  'CRON_SCHEDULE','PHOTOS_BASE_PATH',
+];
+
 function getUserDir(userId) {
   return path.join(USERS_DIR, String(userId));
 }
@@ -78,20 +96,26 @@ async function writeUsers(users) {
   }
 }
 async function readUserConfig(userId) {
+  // Restituisce SOLO la config personale dell'utente — nessuna contaminazione da altri utenti o env.
+  // L'admin ha la sua config salvata esattamente come qualsiasi altro utente.
   if (isDbEnabled()) {
-    const dbCfg = await dbReadUserConfig(userId);
-    // Merge: variabili Railway/server come base + config salvata dall'utente come override.
-    // Garantisce che la pipeline abbia sempre config valida anche se l'utente non ha mai
-    // salvato nulla via dashboard (es. nuovo utente o primo avvio con DB vuoto).
-    const envBase = {};
-    for (const k of ENV_KNOWN_KEYS) {
-      if (process.env[k]) envBase[k] = process.env[k];
-    }
-    return { ...envBase, ...dbCfg }; // dbCfg vince sempre su envBase
+    return await dbReadUserConfig(userId);
   }
   const f = path.join(getUserDir(userId), 'config.json');
   if (!fs.existsSync(f)) return {};
   try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return {}; }
+}
+
+// Restituisce la config effettiva per eseguire la pipeline:
+// variabili di sistema (Railway/processo) come base + config personale dell'utente come override.
+// Usata SOLO internamente per runPipeline — mai esposta via API.
+async function getEffectiveConfig(userId) {
+  const userCfg = await readUserConfig(userId);
+  const base = {};
+  for (const k of ENV_KNOWN_KEYS) {
+    if (process.env[k]) base[k] = process.env[k];
+  }
+  return { ...base, ...userCfg }; // config utente vince sempre su base di sistema
 }
 async function writeUserConfig(userId, vars) {
   for (const [k, v] of Object.entries(vars)) process.env[k] = String(v);
@@ -113,8 +137,9 @@ async function writeUserConfig(userId, vars) {
   } else {
     const dir = getUserDir(userId);
     fs.mkdirSync(dir, { recursive: true });
-    const existing = await readUserConfig(userId);
-    fs.writeFileSync(path.join(dir, 'config.json'), JSON.stringify({ ...existing, ...vars }, null, 2));
+    const cfgPath = path.join(dir, 'config.json');
+    const existing = fs.existsSync(cfgPath) ? JSON.parse(fs.readFileSync(cfgPath, 'utf8') || '{}') : {};
+    fs.writeFileSync(cfgPath, JSON.stringify({ ...existing, ...vars }, null, 2));
   }
 }
 async function readUserTopics(userId) {
@@ -347,8 +372,9 @@ async function runPipeline(userId) {
   setState({ status: 'running', lastRun: new Date().toISOString(), steps: [], lastResult: null, userId });
   logger.info(`─── Avvio ciclo pipeline [user: ${userId}] ───`);
 
-  // Applica la configurazione dell'utente a process.env
-  const userCfg = await readUserConfig(userId);
+  // Applica la config effettiva a process.env:
+  // sistema come base + config personale utente come override (isolamento completo)
+  const userCfg = await getEffectiveConfig(userId);
   for (const [k, v] of Object.entries(userCfg)) process.env[k] = String(v);
 
   const topicsFile = getUserTopicsFile(userId);
@@ -766,22 +792,6 @@ app.delete('/api/topics/:id', requireAuth, async (req, res) => {
 });
 
 // ─── Config API ─────────────────────────────────────────────────────────────
-
-const ENV_FILE            = path.join(__dirname, '.env');
-const ENV_KNOWN_KEYS = [
-  'HEYGEN_API_KEY','HEYGEN_AVATAR_ID','HEYGEN_VOICE_ID','HEYGEN_MOTION_ENGINE',
-  'HEYGEN_ASPECT_RATIO','HEYGEN_RESOLUTION','HEYGEN_EXPRESSIVENESS','HEYGEN_EXPRESSION_INTENSITY',
-  'HEYGEN_AVATAR_STYLE','HEYGEN_BG_COLOR','HEYGEN_REMOVE_BG','HEYGEN_MOTION_PROMPT',
-  'HEYGEN_VOICE_SPEED','HEYGEN_VOICE_PITCH','HEYGEN_VOICE_EMOTION','HEYGEN_VOICE_LOCALE',
-  'HEYGEN_BG_TYPE','HEYGEN_BG_IMAGE_URL','HEYGEN_BG_PLAY_STYLE',
-  'HEYGEN_CIRCLE_BG_COLOR','HEYGEN_AVATAR_OFFSET_X','HEYGEN_AVATAR_OFFSET_Y',
-  'HEYGEN_CAPTION','HEYGEN_VIDEO_TITLE','HEYGEN_TEST_MODE',
-  'GEMINI_API_KEY','GEMINI_MODEL',
-  'ANTHROPIC_API_KEY','ANTHROPIC_MODEL',
-  'META_ACCESS_TOKEN','INSTAGRAM_ACCOUNT_ID',
-  'TELEGRAM_BOT_TOKEN','TELEGRAM_CHAT_ID',
-  'CRON_SCHEDULE','PHOTOS_BASE_PATH',
-];
 
 function readEnvFile() {
   const map = {};
@@ -1308,12 +1318,28 @@ logger.info(`Schedule: ${config.cron.schedule}`);
 
   await bootstrapAdmin();
 
-  // Cron scheduler — usa admin user
+  // Cron scheduler — avvia la pipeline per TUTTI gli utenti attivi con topic pending
   cron.schedule(config.cron.schedule, async () => {
-    const admin = (await readUsers()).find(u => u.role === 'admin');
     logger.info(`Cron triggered: ${new Date().toISOString()}`);
-    telegram.sendMessage('⏰ <b>Cron attivato</b> — avvio pipeline automatico...');
-    runPipelineAll(admin?.id);
+    const users = await readUsers();
+    const activeUsers = users.filter(u => u.active !== false && u.approved !== false);
+    const usersWithPending = [];
+    for (const u of activeUsers) {
+      const topics = await readUserTopics(u.id);
+      if (topics.some(t => t.status === 'pending')) usersWithPending.push(u);
+    }
+    if (!usersWithPending.length) {
+      logger.info('Cron: nessun utente con topic pending');
+      telegram.sendMessage('⏰ <b>Cron attivato</b> — nessun topic pending.');
+      return;
+    }
+    telegram.sendMessage(
+      `⏰ <b>Cron attivato</b> — ${usersWithPending.length} utente/i con topic pending.`
+    );
+    for (const u of usersWithPending) {
+      logger.info(`Cron: avvio pipeline per ${u.email}`);
+      await runPipelineAll(u.id);
+    }
   }, { timezone: 'Europe/Rome' });
 
   // Avvia log watcher
