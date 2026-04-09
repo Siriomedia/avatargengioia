@@ -246,7 +246,7 @@ async function parseMessageWithAI(userMessage) {
  * @param {Function} getState      — callback per ottenere lo stato corrente del pipeline
  * @returns {{ bot: TelegramBot, sendMessage: Function }}
  */
-export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = null, saveTopicsCallback = null, onImportHistory = null) {
+export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = null, saveTopicsCallback = null, onImportHistory = null, onLogMessage = null) {
   const token  = config.telegram?.token;
   const chatId = config.telegram?.chatId;
 
@@ -316,6 +316,29 @@ export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = n
     if (!chatId) return true;
     return String(msg.chat.id) === String(chatId);
   }
+
+  // ─── Conversation logging ─────────────────────────────────────────────────
+  function logMsg(dir, text) {
+    if (!onLogMessage) return;
+    try {
+      const clean = String(text).replace(/<[^>]*>/g, '').trim();
+      if (clean) onLogMessage({ dir, text: clean, ts: new Date().toISOString() });
+    } catch {}
+  }
+
+  // Avvolge bot.sendMessage per loggare automaticamente tutti i messaggi in uscita
+  const _origSendMsg = bot.sendMessage.bind(bot);
+  bot.sendMessage = (cid, text, opts) => {
+    logMsg('out', text);
+    return _origSendMsg(cid, text, opts);
+  };
+
+  // Logga tutti i messaggi in arrivo (comandi + testo libero)
+  bot.on('message', (msg) => {
+    if (!isAuthorized(msg)) return;
+    const text = msg.text?.trim();
+    if (text) logMsg('in', text);
+  });
 
   // ─── /start ──────────────────────────────────────────────────────────────
   bot.onText(/\/start/, (msg) => {

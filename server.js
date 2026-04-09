@@ -170,6 +170,28 @@ async function readImportHistory(userId) {
   return readHistoryFile(userId, 'import');
 }
 
+// ─── Chat log helpers (conversazione Telegram) ─────────────────────────────────────────────
+function getChatLogFile() {
+  return path.join(DATA_DIR, 'chat-log.json');
+}
+function readChatLog() {
+  const f = getChatLogFile();
+  if (!fs.existsSync(f)) return [];
+  try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return []; }
+}
+function appendChatLog(entry) {
+  const f    = getChatLogFile();
+  const list = readChatLog();
+  list.unshift(entry);             // più recente in testa
+  fs.writeFileSync(f, JSON.stringify(list.slice(0, 1000), null, 2));
+}
+function addChatMessage(entry) {
+  try {
+    const rec = { id: randomUUID(), ...entry };
+    appendChatLog(rec);
+  } catch(e) { logger.warn(`addChatMessage: ${e.message}`); }
+}
+
 // ─── Auth Middleware ─────────────────────────────────────────────────────────
 function requireAuth(req, res, next) {
   const header = req.headers.authorization;
@@ -429,6 +451,7 @@ const telegram = startTelegramBot(
   async () => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); return admin ? await readUserTopics(admin.id) : []; },
   async (topics) => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); if (admin) await writeUserTopics(admin.id, topics); },
   async (topics, source) => { const users = await readUsers(); const admin = users.find(u => u.role === 'admin'); if (admin) await addImportHistory(admin.id, { source: source||'telegram', count: topics.length, topicsSnapshot: topics.map(({ id, topic, pilastro, status }) => ({ id, topic, pilastro, status })) }); },
+  (entry) => { addChatMessage(entry); },
 );
 
 /**
@@ -1207,6 +1230,30 @@ app.get('/api/admin/users/:id/history/videos', requireAuth, requireAdmin, async 
 app.get('/api/admin/users/:id/history/imports', requireAuth, requireAdmin, async (req, res) => {
   try {
     res.json(await readImportHistory(req.params.id));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Chat Log API (conversazione Telegram) ─────────────────────────────────────────────────────
+
+// GET /api/chat/log — storico conversazione Telegram
+app.get('/api/chat/log', requireAuth, (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 200;
+    res.json(readChatLog().slice(0, limit));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// POST /api/chat/send — invia un messaggio al bot Telegram dalla dashboard (solo admin)
+app.post('/api/chat/send', requireAuth, requireAdmin, (req, res) => {
+  const text = String(req.body?.text || '').trim();
+  if (!text) return res.status(400).json({ error: 'Testo obbligatorio' });
+  try {
+    telegram.sendMessage(text);
+    res.json({ ok: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

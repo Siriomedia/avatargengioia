@@ -1197,6 +1197,7 @@
     <button id="tab-btn-topics"   class="tab-btn" data-section="topics"   onclick="switchTab('topics', this)">📋 Gestione Topic</button>
     <button id="tab-btn-wizard"   class="tab-btn" data-section="wizard"   onclick="switchTab('wizard', this)">🪄 Genera Excel</button>
     <button id="tab-btn-config"   class="tab-btn" data-section="config"   onclick="switchTab('config', this)">⚙️ Configurazioni</button>
+    <button id="tab-btn-chatbot"  class="tab-btn" data-section="chatbot" onclick="switchTab('chatbot', this)">💬 Chatbot</button>
     <button id="tab-btn-admin"    class="tab-btn hidden" onclick="switchTab('admin', this)">👥 Utenti</button>
   </nav>
 
@@ -2050,6 +2051,7 @@
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)"><input type="checkbox" class="admin-section-cb" value="topics"   style="cursor:pointer" /> 📋 Topics</label>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)"><input type="checkbox" class="admin-section-cb" value="wizard"   style="cursor:pointer" /> 🪄 Wizard</label>
           <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)"><input type="checkbox" class="admin-section-cb" value="config"   style="cursor:pointer" /> ⚙️ Config</label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:13px;font-weight:500;color:var(--text)"><input type="checkbox" class="admin-section-cb" value="chatbot"  style="cursor:pointer" /> 💬 Chatbot</label>
         </div>
       </div>
       <div class="admin-modal-actions">
@@ -2424,7 +2426,7 @@
   function applyUserSections() {
     if (!currentUser) return;
     if (currentUser.role === 'admin') return; // admin sees all tabs
-    const allSections = ['pipeline','topics','wizard','config'];
+    const allSections = ['pipeline','topics','wizard','config','chatbot'];
     const allowed = currentUser.sections || allSections;
     allSections.forEach(section => {
       const btn = document.getElementById('tab-btn-' + section);
@@ -2442,6 +2444,7 @@
 
   function onLoggedIn() {
     renderUserBadge();
+    initChatbotUI();
     loadInitial();
     connectSSE();
     loadTopics();
@@ -2481,10 +2484,12 @@
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.getElementById('tab-' + name).classList.add('active');
     btn.classList.add('active');
-    if (name === 'topics') loadTopics();
-    if (name === 'config') loadConfigTab();
-    if (name === 'wizard') initWizard();
-    if (name === 'admin') loadAdminUsers();
+    if (name === 'topics')  loadTopics();
+    if (name === 'config')  loadConfigTab();
+    if (name === 'wizard')  initWizard();
+    if (name === 'admin')   loadAdminUsers();
+    if (name === 'chatbot') { loadChatLog(); startChatPoll(); }
+    else stopChatPoll();
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -3481,6 +3486,87 @@
     loadTopics(); loadConfigTab();
   }
 
+  // ═════════════════════════════════════════════════════════════════════════════════
+  // CHATBOT — Conversazione Telegram
+  // ═════════════════════════════════════════════════════════════════════════════════
+  let _chatPollInterval = null;
+
+  function initChatbotUI() {
+    // Mostra la box di invio solo all'admin
+    const box = document.getElementById('chatbot-send-box');
+    if (box && currentUser?.role === 'admin') box.classList.remove('hidden');
+  }
+
+  function startChatPoll() {
+    stopChatPoll();
+    _chatPollInterval = setInterval(loadChatLog, 10000); // aggiorna ogni 10s
+  }
+
+  function stopChatPoll() {
+    if (_chatPollInterval) { clearInterval(_chatPollInterval); _chatPollInterval = null; }
+  }
+
+  async function loadChatLog() {
+    const statusEl = document.getElementById('chatbot-status');
+    try {
+      const res  = await authFetch('/api/chat/log');
+      const msgs = await res.json();
+      renderChatMessages(Array.isArray(msgs) ? msgs : []);
+      if (statusEl) statusEl.textContent = `${Array.isArray(msgs) ? msgs.length : 0} messaggi · ${new Date().toLocaleTimeString('it-IT')}`;
+    } catch {
+      if (statusEl) statusEl.textContent = 'Errore di caricamento';
+    }
+  }
+
+  function renderChatMessages(msgs) {
+    const container = document.getElementById('chatbot-messages');
+    if (!container) return;
+    if (!msgs.length) {
+      container.innerHTML = '<div style="text-align:center;color:var(--text3);padding:40px;font-size:13px">Nessuna conversazione ancora.<br><span style="font-size:11.5px">Scrivi al bot Telegram per iniziare.</span></div>';
+      return;
+    }
+    // msgs sono più-recenti-prima; per la chat mostriamo i più vecchi prima
+    const ordered = [...msgs].reverse();
+    container.innerHTML = ordered.map(m => {
+      const isIn = m.dir === 'in';
+      const time = m.ts ? new Date(m.ts).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : '';
+      const date = m.ts ? new Date(m.ts).toLocaleDateString('it-IT', { day: '2-digit', month: 'short' }) : '';
+      return `
+        <div style="display:flex;flex-direction:column;align-items:${isIn ? 'flex-start' : 'flex-end'}">
+          <div style="
+            max-width:78%;
+            background:${isIn ? 'var(--surface2)' : 'linear-gradient(135deg,#1a6fdf,#2e86f5)'};
+            color:${isIn ? 'var(--text)' : '#fff'};
+            border:${isIn ? '1px solid var(--border)' : 'none'};
+            border-radius:${isIn ? '3px 14px 14px 14px' : '14px 3px 14px 14px'};
+            padding:9px 13px;font-size:13.5px;line-height:1.55;
+            white-space:pre-wrap;word-break:break-word;
+            box-shadow:0 2px 6px rgba(0,0,0,.07);
+          ">${escHtml(m.text)}</div>
+          <div style="font-size:10.5px;color:var(--text3);margin-top:3px;padding:0 4px">
+            ${isIn ? '👤 Utente' : '🤖 Bot'}${m.source === 'dashboard' ? ' (dashboard)' : ''} · ${time} ${date}
+          </div>
+        </div>`;
+    }).join('');
+    // Scrolla in fondo
+    const wrap = document.getElementById('chatbot-scroll-wrap');
+    if (wrap) wrap.scrollTop = wrap.scrollHeight;
+  }
+
+  async function sendChatMessage() {
+    const input = document.getElementById('chatbot-msg-input');
+    const text  = input?.value?.trim();
+    if (!text) return;
+    try {
+      const res = await authFetch('/api/chat/send', { method: 'POST', body: JSON.stringify({ text }) });
+      const d   = await res.json();
+      if (!res.ok) { alert(d.error || 'Errore invio'); return; }
+      if (input) input.value = '';
+      await loadChatLog();
+    } catch (err) {
+      alert('Errore: ' + err.message);
+    }
+  }
 </script>
 </body>
 </html>
