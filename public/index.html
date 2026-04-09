@@ -1121,16 +1121,51 @@
       <h2>AvatarGenGioIA</h2>
       <p>MCP Pipeline Dashboard</p>
     </div>
-    <div class="login-field">
-      <label>Email</label>
-      <input id="login-email" type="email" placeholder="nome@esempio.com" autocomplete="username" />
+    <!-- ── Panel: Login ─────────────────────────────────────── -->
+    <div id="login-form">
+      <div class="login-field">
+        <label>Email</label>
+        <input id="login-email" type="email" placeholder="nome@esempio.com" autocomplete="username" />
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" />
+      </div>
+      <p class="login-error" id="login-error"></p>
+      <button class="login-btn" onclick="doLogin()">Accedi</button>
+      <p style="text-align:center;margin-top:16px;font-size:13px;color:rgba(255,255,255,.45)">Non hai un account? <a href="#" onclick="toggleAuthForm('register');return false" style="color:#38a8f5;font-weight:600;text-decoration:none">Registrati</a></p>
     </div>
-    <div class="login-field">
-      <label>Password</label>
-      <input id="login-pass" type="password" placeholder="••••••••" autocomplete="current-password" />
+    <!-- ── Panel: Registrazione ─────────────────────────────── -->
+    <div id="register-form" style="display:none">
+      <div class="login-field">
+        <label>Nome</label>
+        <input id="reg-name" type="text" placeholder="Mario Rossi" autocomplete="name" />
+      </div>
+      <div class="login-field">
+        <label>Email</label>
+        <input id="reg-email" type="email" placeholder="mario@esempio.com" autocomplete="email" />
+      </div>
+      <div class="login-field">
+        <label>Password</label>
+        <input id="reg-pass" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <div class="login-field">
+        <label>Conferma Password</label>
+        <input id="reg-pass2" type="password" placeholder="••••••••" autocomplete="new-password" />
+      </div>
+      <p class="login-error" id="reg-error"></p>
+      <button class="login-btn" onclick="doRegister()">Registrati</button>
+      <p style="text-align:center;margin-top:16px;font-size:13px;color:rgba(255,255,255,.45)">Hai già un account? <a href="#" onclick="toggleAuthForm('login');return false" style="color:#38a8f5;font-weight:600;text-decoration:none">Accedi</a></p>
     </div>
-    <p class="login-error" id="login-error"></p>
-    <button class="login-btn" onclick="doLogin()">Accedi</button>
+    <!-- ── Panel: In attesa approvazione ────────────────────── -->
+    <div id="pending-form" style="display:none">
+      <div style="text-align:center;padding:8px 0 20px">
+        <div style="font-size:52px;margin-bottom:16px">⏳</div>
+        <p style="color:#fff;font-weight:700;font-size:16px;margin-bottom:8px">Richiesta inviata!</p>
+        <p style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.6">La tua registrazione è in attesa di approvazione. Accederai non appena l'admin approva.</p>
+      </div>
+      <button class="login-btn" onclick="toggleAuthForm('login')">← Torna al Login</button>
+    </div>
   </div>
 </div>
 
@@ -2253,42 +2288,6 @@
   function clearToken() { localStorage.removeItem(TOKEN_KEY); }
 
   function toggleAuthForm(mode) {
-    document.getElementById('login-form').style.display    = mode === 'login'    ? '' : 'none';
-    document.getElementById('register-form').style.display = mode === 'register' ? '' : 'none';
-    document.getElementById('pending-form').style.display  = mode === 'pending'  ? '' : 'none';
-    document.getElementById('login-error') && (document.getElementById('login-error').textContent = '');
-    document.getElementById('reg-error')   && (document.getElementById('reg-error').textContent = '');
-  }
-
-  async function doRegister() {
-    const name  = document.getElementById('reg-name').value.trim();
-    const email = document.getElementById('reg-email').value.trim();
-    const pass  = document.getElementById('reg-pass').value;
-    const pass2 = document.getElementById('reg-pass2').value;
-    const errEl = document.getElementById('reg-error');
-    const btn   = document.getElementById('register-form').querySelector('.login-btn');
-    errEl.textContent = '';
-    if (!email || !pass) { errEl.textContent = 'Email e password obbligatori'; return; }
-    if (pass.length < 8) { errEl.textContent = 'La password deve avere almeno 8 caratteri'; return; }
-    if (pass !== pass2)  { errEl.textContent = 'Le password non coincidono'; return; }
-    btn.disabled = true; btn.textContent = 'Invio in corso…';
-    try {
-      const res  = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password: pass }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Errore registrazione');
-      toggleAuthForm('pending');
-    } catch (err) {
-      errEl.textContent = err.message;
-    } finally {
-      btn.disabled = false; btn.textContent = 'Registrati';
-    }
-  }
-
-  function toggleAuthForm(mode) {
     document.getElementById('login-form').style.display    = (mode === 'login')    ? '' : 'none';
     document.getElementById('register-form').style.display = (mode === 'register') ? '' : 'none';
     document.getElementById('pending-form').style.display  = (mode === 'pending')  ? '' : 'none';
@@ -2453,15 +2452,15 @@
   }
 
   // Intercetta Enter nei form login/registrazione
-  document.getElementById('login-email').addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('login-pass').focus());
-  document.getElementById('login-pass').addEventListener('keydown',  e => e.key === 'Enter' && doLogin());
-  document.getElementById('reg-name').addEventListener('keydown',    e => e.key === 'Enter' && document.getElementById('reg-email').focus());
-  document.getElementById('reg-email').addEventListener('keydown',   e => e.key === 'Enter' && document.getElementById('reg-pass').focus());
-  document.getElementById('reg-pass').addEventListener('keydown',    e => e.key === 'Enter' && document.getElementById('reg-pass2').focus());
-  document.getElementById('reg-pass2').addEventListener('keydown',   e => e.key === 'Enter' && doRegister());
+  document.getElementById('login-email')?.addEventListener('keydown', e => e.key === 'Enter' && document.getElementById('login-pass').focus());
+  document.getElementById('login-pass')?.addEventListener('keydown',  e => e.key === 'Enter' && doLogin());
+  document.getElementById('reg-name')?.addEventListener('keydown',    e => e.key === 'Enter' && document.getElementById('reg-email').focus());
+  document.getElementById('reg-email')?.addEventListener('keydown',   e => e.key === 'Enter' && document.getElementById('reg-pass').focus());
+  document.getElementById('reg-pass')?.addEventListener('keydown',    e => e.key === 'Enter' && document.getElementById('reg-pass2').focus());
+  document.getElementById('reg-pass2')?.addEventListener('keydown',   e => e.key === 'Enter' && doRegister());
 
   // Hide sections field when role is set to admin
-  document.getElementById('admin-form-role').addEventListener('change', e => {
+  document.getElementById('admin-form-role')?.addEventListener('change', e => {
     document.getElementById('admin-sections-field').style.display = e.target.value === 'admin' ? 'none' : '';
   });
 
@@ -3433,21 +3432,6 @@
       closeAdminModal();
       loadAdminUsers();
     } catch(e) { alert(e.message); }
-  }
-
-  async function approveUser(id) {
-    const res = await authFetch(`/api/admin/users/${id}/approve`, { method: 'POST' });
-    const d   = await res.json();
-    if (!res.ok) { alert(d.error || 'Errore'); return; }
-    loadAdminUsers();
-  }
-
-  async function rejectUser(id, email) {
-    if (!confirm(`Rifiutare e rimuovere la richiesta di ${email}?`)) return;
-    const res = await authFetch(`/api/admin/users/${id}/reject`, { method: 'POST' });
-    const d   = await res.json();
-    if (!res.ok) { alert(d.error || 'Errore'); return; }
-    loadAdminUsers();
   }
 
   async function approveUser(id) {
