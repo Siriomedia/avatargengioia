@@ -313,6 +313,8 @@ async function runPipeline(userId) {
 const telegram = startTelegramBot(
   () => { const admin = readUsers().find(u => u.role === 'admin'); runPipelineAll(admin?.id); },
   () => pipelineState,
+  () => { const admin = readUsers().find(u => u.role === 'admin'); return admin ? readUserTopics(admin.id) : []; },
+  (topics) => { const admin = readUsers().find(u => u.role === 'admin'); if (admin) writeUserTopics(admin.id, topics); },
 );
 
 /**
@@ -331,6 +333,11 @@ async function runPipelineAll(userId) {
   }
   logger.info(`Coda: ${totalToProcess} topic pending da elaborare`);
   setState({ ...pipelineState, queue: { total: totalToProcess, current: 0, remaining: totalToProcess } });
+  telegram.sendMessage(
+    `🚀 <b>Pipeline avviata!</b>\n\n` +
+    `📋 <b>${totalToProcess}</b> video in lavorazione...\n` +
+    `⏳ Riceverai una notifica per ogni video completato.`
+  );
 
   while (true) {
     const pendingTopics = readUserTopics(userId).filter(t => t.status === 'pending');
@@ -339,6 +346,9 @@ async function runPipelineAll(userId) {
     const currentNum = processed + 1;
     setState({ ...pipelineState, queue: { total: totalToProcess, current: currentNum, remaining: pendingTopics.length } });
     logger.info(`▶ Video ${currentNum} di ${totalToProcess} — topic: "${pendingTopics[0].topic}"`);
+    telegram.sendMessage(
+      `▶️ <b>Video ${currentNum}/${totalToProcess}</b>\n📌 ${pendingTopics[0].topic}`
+    );
 
     await runPipeline(userId);
     processed++;

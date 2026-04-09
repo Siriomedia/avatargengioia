@@ -246,7 +246,7 @@ async function parseMessageWithAI(userMessage) {
  * @param {Function} getState      — callback per ottenere lo stato corrente del pipeline
  * @returns {{ bot: TelegramBot, sendMessage: Function }}
  */
-export function startTelegramBot(onRunPipeline, getState) {
+export function startTelegramBot(onRunPipeline, getState, readTopicsCallback = null, saveTopicsCallback = null) {
   const token  = config.telegram?.token;
   const chatId = config.telegram?.chatId;
 
@@ -261,6 +261,10 @@ export function startTelegramBot(onRunPipeline, getState) {
 
   const bot = new TelegramBot(token, { polling: true });
   logger.info('🤖 Telegram bot avviato (polling)');
+
+  // Usa i callback del server per leggere/scrivere topics (multi-tenant)
+  const readT = () => readTopicsCallback ? readTopicsCallback() : readTopics();
+  const saveT = (t) => saveTopicsCallback ? saveTopicsCallback(t) : saveTopics(t);
 
   // ─── Sessioni wizard (una per chat_id) ───────────────────────────────────
   // { [chatId]: { step: 0, answers: {} } }
@@ -394,7 +398,7 @@ export function startTelegramBot(onRunPipeline, getState) {
   // ─── /topics ─────────────────────────────────────────────────────────────
   bot.onText(/\/topics/, (msg) => {
     if (!isAuthorized(msg)) return;
-    const topics = readTopics();
+    const topics = readT();
     if (!topics.length) {
       bot.sendMessage(msg.chat.id, '📭 Nessun topic in coda.\nUsa /wizard per crearne!');
       return;
@@ -420,12 +424,12 @@ export function startTelegramBot(onRunPipeline, getState) {
       bot.sendMessage(msg.chat.id, '⚠️ Pipeline già in esecuzione.');
       return;
     }
-    const pending = readTopics().filter(t => t.status === 'pending').length;
+    const pending = readT().filter(t => t.status === 'pending').length;
     if (!pending) {
       bot.sendMessage(msg.chat.id, '📭 Nessun topic pending. Usa /wizard per crearne.');
       return;
     }
-    bot.sendMessage(msg.chat.id, `🚀 Pipeline avviato! ${pending} topic da elaborare.`);
+    bot.sendMessage(msg.chat.id, `✅ Ricevuto! Avvio la pipeline per <b>${pending}</b> topic...`, { parse_mode: 'HTML' });
     onRunPipeline();
   });
 
@@ -549,7 +553,7 @@ export function startTelegramBot(onRunPipeline, getState) {
         return;
       }
 
-      const existing = readTopics();
+      const existing = readT();
       let nextId = getNextId(existing);
       const toAdd = newTopics.map(t => ({
         id:       nextId++,
@@ -561,7 +565,7 @@ export function startTelegramBot(onRunPipeline, getState) {
         status:   'pending',
       }));
 
-      saveTopics([...existing, ...toAdd]);
+      saveT([...existing, ...toAdd]);
       logger.info(`Telegram: ${toAdd.length} topic aggiunti da messaggio libero`);
 
       const topicList = toAdd.map((t, i) =>
@@ -606,7 +610,7 @@ export function startTelegramBot(onRunPipeline, getState) {
         const ws     = wb.Sheets[wb.SheetNames[0]];
         const rows   = XLSX.utils.sheet_to_json(ws, { defval: '' });
 
-        const existing = readTopics();
+        const existing = readT();
         let nextId = getNextId(existing);
         const toAdd = rows.map(r => ({
           id:       nextId++,
@@ -618,7 +622,7 @@ export function startTelegramBot(onRunPipeline, getState) {
           status:   'pending',
         })).filter(r => r.topic);
 
-        saveTopics([...existing, ...toAdd]);
+        saveT([...existing, ...toAdd]);
         logger.info(`Wizard import: ${toAdd.length} topic importati da Telegram`);
 
         await bot.sendMessage(id, [
